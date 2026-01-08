@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Zap, Crown, ArrowLeft, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import nexoraLogo from "@/assets/nexora-logo.png";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Payment links configuration - easily replaceable
 const PAYMENT_LINKS = {
@@ -15,7 +17,20 @@ const PAYMENT_LINKS = {
   annual: "https://whop.com/checkout/plan_xNlBWUTysLURE",
 };
 
-const PLANS = [
+type Plan = {
+  id: "monthly" | "annual";
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  icon: typeof Zap;
+  features: string[];
+  popular: boolean;
+  link: string;
+  badge?: string;
+};
+
+const PLANS: Plan[] = [
   {
     id: "monthly",
     name: "Monthly",
@@ -53,11 +68,23 @@ const PLANS = [
   },
 ];
 
+
 const Pricing = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { hasActiveSubscription } = useSubscription();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const { toast } = useToast();
+
+  const [purchaseStarted, setPurchaseStarted] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(false);
+
+  const isReady = useMemo(() => !!user && !subLoading, [user, subLoading]);
+
+  useEffect(() => {
+    if (hasActiveSubscription) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [hasActiveSubscription, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -69,14 +96,68 @@ const Pricing = () => {
   };
 
   const handlePurchase = (link: string) => {
+    setPurchaseStarted(true);
     window.open(link, "_blank", "noopener,noreferrer");
   };
 
-  // If user has active subscription, redirect to dashboard
-  if (hasActiveSubscription) {
-    navigate("/dashboard");
-    return null;
-  }
+  const checkAccessNow = async () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    setCheckingAccess(true);
+    try {
+      const { data, error } = await supabase.rpc("has_active_subscription", {
+        user_uuid: user.id,
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        toast({
+          title: "Payment confirmed",
+          description: "Access unlocked. Redirecting…",
+        });
+        navigate("/dashboard/ebook-generator", { replace: true });
+        return;
+      }
+
+      toast({
+        title: "Not confirmed yet",
+        description:
+          "We haven't received the payment confirmation yet. Please wait 30–60 seconds and try again.",
+        variant: "destructive",
+      });
+    } catch (e: unknown) {
+      toast({
+        title: "Could not verify payment",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingAccess(false);
+    }
+  };
+
+  // After checkout finishes, users usually return to this tab manually.
+  // On focus, re-check access once to unlock without a full refresh.
+  useEffect(() => {
+    if (!purchaseStarted || !isReady) return;
+
+    const onFocus = () => {
+      void checkAccessNow();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchaseStarted, isReady]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -88,7 +169,12 @@ const Pricing = () => {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src={nexoraLogo} alt="NexoraOS" className="h-8 w-auto" />
+                <img
+                  src={nexoraLogo}
+                  alt="NexoraOS logo"
+                  className="h-8 w-auto"
+                  loading="lazy"
+                />
               </div>
               <div className="flex items-center gap-4">
                 <Button variant="ghost" onClick={() => navigate("/")} className="gap-2">
@@ -107,7 +193,7 @@ const Pricing = () => {
         </header>
 
         {/* Pricing Section */}
-        <div className="container mx-auto px-6 pt-32 pb-20">
+        <main className="container mx-auto px-6 pt-32 pb-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,6 +206,7 @@ const Pricing = () => {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Unlock the full power of NexoraOS. Start creating professional AI-generated ebooks today.
             </p>
+
             {!user && (
               <p className="text-sm text-muted-foreground mt-4">
                 Already have an account?{" "}
@@ -133,8 +220,32 @@ const Pricing = () => {
             )}
           </motion.div>
 
+          {user && purchaseStarted && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <Card className="glass-panel p-6 text-left">
+                <p className="text-sm text-muted-foreground">
+                  After completing checkout, come back to this tab. We’ll unlock your account as soon as the
+                  payment confirmation arrives.
+                </p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  <Button onClick={checkAccessNow} disabled={checkingAccess} className="sm:w-auto">
+                    {checkingAccess ? "Checking…" : "I've paid — Unlock access"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/dashboard/ebook-generator")}
+                    disabled={!hasActiveSubscription}
+                    className="sm:w-auto"
+                  >
+                    Go to Generator
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Pricing Cards */}
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <section className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto" aria-label="Pricing plans">
             {PLANS.map((plan, index) => (
               <motion.div
                 key={plan.id}
@@ -144,9 +255,7 @@ const Pricing = () => {
               >
                 <Card
                   className={`glass-panel p-8 relative h-full flex flex-col ${
-                    plan.popular
-                      ? "border-primary/50 shadow-lg shadow-primary/10"
-                      : ""
+                    plan.popular ? "border-primary/50 shadow-lg shadow-primary/10" : ""
                   }`}
                 >
                   {plan.badge && (
@@ -160,9 +269,7 @@ const Pricing = () => {
                   <div className="text-center mb-6">
                     <div
                       className={`inline-flex p-3 rounded-xl mb-4 ${
-                        plan.popular
-                          ? "bg-primary/10"
-                          : "bg-muted"
+                        plan.popular ? "bg-primary/10" : "bg-muted"
                       }`}
                     >
                       <plan.icon
@@ -176,9 +283,7 @@ const Pricing = () => {
                       <span className="text-4xl font-bold">{plan.price}</span>
                       <span className="text-muted-foreground">{plan.period}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {plan.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                   </div>
 
                   <ul className="space-y-3 mb-8 flex-1">
@@ -192,11 +297,7 @@ const Pricing = () => {
 
                   <Button
                     size="lg"
-                    className={`w-full ${
-                      plan.popular
-                        ? "bg-primary hover:bg-primary/90"
-                        : ""
-                    }`}
+                    className={`w-full ${plan.popular ? "bg-primary hover:bg-primary/90" : ""}`}
                     variant={plan.popular ? "default" : "outline"}
                     onClick={() => {
                       if (!user) {
@@ -211,7 +312,7 @@ const Pricing = () => {
                 </Card>
               </motion.div>
             ))}
-          </div>
+          </section>
 
           {/* Trust Indicators */}
           <motion.div
@@ -224,10 +325,11 @@ const Pricing = () => {
               Secure payment processing powered by Whop • Cancel anytime
             </p>
           </motion.div>
-        </div>
+        </main>
       </div>
     </div>
   );
 };
 
 export default Pricing;
+
