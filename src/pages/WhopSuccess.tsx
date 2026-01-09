@@ -11,14 +11,7 @@ const TIMEOUT_MS = 60_000;
 const WhopSuccess = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-
   const [status, setStatus] = useState<"polling" | "active" | "timeout">("polling");
-
-  // If not logged in → redirect to email login with return URL
-  if (!authLoading && !user) {
-    const redirect = encodeURIComponent("/whop/success");
-    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
-  }
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -28,7 +21,6 @@ const WhopSuccess = () => {
 
     const checkSubscription = async () => {
       try {
-        // Query subscription - backend webhook is source of truth
         const { data, error } = await supabase
           .from("subscriptions")
           .select("id, status, expires_at")
@@ -46,7 +38,6 @@ const WhopSuccess = () => {
 
         if (data && data.length > 0) {
           setStatus("active");
-          // Small delay to show success state before redirect
           setTimeout(() => {
             if (!cancelled) {
               navigate("/dashboard", { replace: true });
@@ -55,7 +46,6 @@ const WhopSuccess = () => {
           return;
         }
 
-        // Check timeout
         if (Date.now() - startedAt >= TIMEOUT_MS) {
           setStatus("timeout");
         }
@@ -64,7 +54,6 @@ const WhopSuccess = () => {
       }
     };
 
-    // Run immediately, then poll
     void checkSubscription();
     const intervalId = window.setInterval(() => {
       if (status === "polling") {
@@ -78,13 +67,19 @@ const WhopSuccess = () => {
     };
   }, [authLoading, user, navigate, status]);
 
-  // While auth is loading
+  // Auth loading state
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Not logged in - redirect to auth with return URL
+  if (!user) {
+    const redirect = encodeURIComponent("/whop/success");
+    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
   }
 
   return (
@@ -125,9 +120,7 @@ const WhopSuccess = () => {
             </p>
             <div className="flex flex-col gap-3 pt-4">
               <Button 
-                onClick={() => {
-                  setStatus("polling");
-                }}
+                onClick={() => setStatus("polling")}
                 variant="default"
               >
                 Check Again
