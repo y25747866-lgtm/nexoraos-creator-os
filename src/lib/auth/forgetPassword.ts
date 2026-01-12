@@ -1,7 +1,7 @@
-import { supabaseExternal } from "./supabaseClient";
+import { supabase } from "../supabaseClient";
 
 export async function forgetPassword(email: string) {
-  const { error } = await supabaseExternal.auth.resetPasswordForEmail(email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: "https://nexoraos.vercel.app/reset-password",
   });
 
