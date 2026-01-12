@@ -1,7 +1,7 @@
-import { supabaseExternal } from "./supabaseClient";
+import { supabase } from "../supabaseClient";
 
 export async function resetPassword(newPassword: string) {
-  const { error } = await supabaseExternal.auth.updateUser({
+  const { error } = await supabase.auth.updateUser({
     password: newPassword,
   });
 
