@@ -1,21 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function checkAccess(): Promise<{ allowed: boolean }> {
-  const { data: session } = await supabase.auth.getSession();
+export async function checkAccess() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session.session) return { allowed: false };
+  if (!user) return { hasAccess: false };
 
-  const userId = session.session.user.id;
-
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("subscriptions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .eq("status", "active")
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
+    .gte("expires_at", new Date().toISOString())
+    .single();
 
-  if (!data) return { allowed: false };
+  if (error || !data) {
+    return { hasAccess: false };
+  }
 
-  return { allowed: true };
+  return { hasAccess: true, subscription: data };
 }
