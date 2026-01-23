@@ -1,52 +1,27 @@
-const BASE_URL = "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1";
+const BASE = "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1";
 
-export async function generateEbookContent(title: string) {
-  const res = await fetch(`${BASE_URL}/generate-ebook-content`, {
+async function post(url: string, body: any) {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Content generation failed");
+    throw new Error(text || "Edge Function failed");
   }
 
   return res.json();
 }
 
-export async function generateEbookTitle(topic: string) {
-  const res = await fetch(`${BASE_URL}/generate-ebook-title`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ topic }),
-  });
+export const generateEbookTitle = (topic: string) =>
+  post(`${BASE}/generate-ebook-title`, { topic });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Title generation failed");
-  }
+export const generateEbookContent = (title: string) =>
+  post(`${BASE}/generate-ebook-content`, { title });
 
-  return res.json();
-}
-
-export async function generateEbookCover(title: string) {
-  const res = await fetch(`${BASE_URL}/generate-ebook-cover`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ title }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Cover generation failed");
-  }
-
-  return res.json();
-    }
+export const generateEbookCover = (title: string) =>
+  post(`${BASE}/generate-ebook-cover`, { title });
