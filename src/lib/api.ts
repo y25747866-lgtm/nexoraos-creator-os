@@ -1,19 +1,18 @@
 const BASE = "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1";
+const ANON = "YOUR_PUBLIC_ANON_KEY_FROM_SUPABASE";
 
 async function post(url: string, body: any) {
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      apikey: ANON,
+      Authorization: `Bearer ${ANON}`,
     },
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Edge Function failed");
-  }
-
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
