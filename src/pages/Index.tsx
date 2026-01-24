@@ -1,30 +1,48 @@
-const Index = () => {
-  const generate = async () => {
-    const res = await fetch(
+async function generateEbook(title: string) {
+  try {
+    // 1️⃣ Generate ebook content
+    const contentRes = await fetch(
       "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1/generate-ebook-content",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwcmdmem94bGdheGJubmp2dmlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg3NzksImV4cCI6MjA4MjM0NDc3OX0.UgZ-H3C80vZLmXwzKOiYYJpxWto39BzQuID7N0hp2Ts",
-          "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwcmdmem94bGdheGJubmp2dmlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg3NzksImV4cCI6MjA4MjM0NDc3OX0.UgZ-H3C80vZLmXwzKOiYYJpxWto39BzQuID7N0hp2Ts",
-        },
-        body: JSON.stringify({ title: "AI Business Blueprint" }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
       }
     );
 
-    const data = await res.json();
-    console.log(data);
-    alert("Success — check console");
-  };
+    const contentData = await contentRes.json();
+    if (!contentRes.ok) throw new Error(contentData.error || "Content failed");
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <button onClick={generate} className="px-6 py-3 bg-black text-white rounded-lg">
-        Generate Ebook
-      </button>
-    </div>
-  );
-};
+    // 2️⃣ Generate cover
+    const coverRes = await fetch(
+      "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1/generate-ebook-cover",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      }
+    );
 
-export default Index;
+    const coverData = await coverRes.json();
+    if (!coverRes.ok) throw new Error(coverData.error || "Cover failed");
+
+    // 3️⃣ Download ebook text as file
+    const ebookBlob = new Blob([contentData.content], { type: "text/plain" });
+    const ebookUrl = URL.createObjectURL(ebookBlob);
+    const ebookLink = document.createElement("a");
+    ebookLink.href = ebookUrl;
+    ebookLink.download = `${title}.txt`;
+    ebookLink.click();
+
+    // 4️⃣ Download cover image
+    const coverLink = document.createElement("a");
+    coverLink.href = coverData.imageUrl;
+    coverLink.download = `${title}-cover.svg`;
+    coverLink.click();
+
+    alert("✅ Ebook & cover generated!");
+  } catch (err) {
+    console.error("❌ Generation failed:", err);
+    alert("Generation failed. Check console.");
+  }
+}
