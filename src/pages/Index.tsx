@@ -1,5 +1,5 @@
 const Index = () => {
-  const generateEbook = async () => {
+  const generate = async () => {
     const res = await fetch(
       "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1/generate-ebook-content",
       {
@@ -14,16 +14,13 @@ const Index = () => {
     );
 
     const data = await res.json();
-    alert("Success — check console");
     console.log(data);
+    alert("Success — check console");
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <button
-        onClick={generateEbook}
-        className="px-6 py-3 bg-black text-white rounded-lg"
-      >
+      <button onClick={generate} className="px-6 py-3 bg-black text-white rounded-lg">
         Generate Ebook
       </button>
     </div>
