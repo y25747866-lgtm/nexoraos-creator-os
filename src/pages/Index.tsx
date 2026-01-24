@@ -1,48 +1,14 @@
-async function generateEbook(title: string) {
-  try {
-    // 1️⃣ Generate ebook content
-    const contentRes = await fetch(
-      "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1/generate-ebook-content",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      }
-    );
+// Update this page (the content is just a fallback if you fail to update the page)
 
-    const contentData = await contentRes.json();
-    if (!contentRes.ok) throw new Error(contentData.error || "Content failed");
+const Index = () => {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
+        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+      </div>
+    </div>
+  );
+};
 
-    // 2️⃣ Generate cover
-    const coverRes = await fetch(
-      "https://zprgfzoxlgaxbnnjvvir.supabase.co/functions/v1/generate-ebook-cover",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      }
-    );
-
-    const coverData = await coverRes.json();
-    if (!coverRes.ok) throw new Error(coverData.error || "Cover failed");
-
-    // 3️⃣ Download ebook text as file
-    const ebookBlob = new Blob([contentData.content], { type: "text/plain" });
-    const ebookUrl = URL.createObjectURL(ebookBlob);
-    const ebookLink = document.createElement("a");
-    ebookLink.href = ebookUrl;
-    ebookLink.download = `${title}.txt`;
-    ebookLink.click();
-
-    // 4️⃣ Download cover image
-    const coverLink = document.createElement("a");
-    coverLink.href = coverData.imageUrl;
-    coverLink.download = `${title}-cover.svg`;
-    coverLink.click();
-
-    alert("✅ Ebook & cover generated!");
-  } catch (err) {
-    console.error("❌ Generation failed:", err);
-    alert("Generation failed. Check console.");
-  }
-}
+export default Index;
