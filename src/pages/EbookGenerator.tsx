@@ -64,13 +64,11 @@ const EbookGenerator = () => {
     setGeneratedEbook(null);
 
     try {
-      setProgress(15);
-      setStatus("Generating title...");
-
-      // Title already generated in useEffect
-
       setProgress(30);
-      setStatus("Generating full content...");
+      setStatus("Generating unique title...");
+
+      setProgress(50);
+      setStatus("Writing full ebook content...");
 
       const { data: contentData, error: contentError } = await supabase.functions.invoke(
         "generate-ebook-content",
@@ -79,8 +77,8 @@ const EbookGenerator = () => {
 
       if (contentError) throw contentError;
 
-      setProgress(60);
-      setStatus("Creating beautiful cover...");
+      setProgress(80);
+      setStatus("Designing beautiful cover...");
 
       const { data: coverData, error: coverError } = await supabase.functions.invoke(
         "generate-ebook-cover",
@@ -89,8 +87,8 @@ const EbookGenerator = () => {
 
       if (coverError) throw coverError;
 
-      setProgress(90);
-      setStatus("Finalizing your real ebook...");
+      setProgress(100);
+      setStatus("Your real ebook is ready!");
 
       const ebook: Ebook = {
         id: crypto.randomUUID(),
@@ -104,12 +102,10 @@ const EbookGenerator = () => {
 
       addEbook(ebook);
       setGeneratedEbook(ebook);
-      setProgress(100);
-      setStatus("Complete! Real ebook ready.");
 
       toast({
         title: "Success!",
-        description: "Your full readable ebook is ready. Download now!",
+        description: "Full readable ebook ready. Download now!",
       });
     } catch (error: unknown) {
       console.error("Error:", error);
@@ -128,7 +124,7 @@ const EbookGenerator = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Page 1: Cover
+    // First page: Cover
     doc.addImage(ebook.coverImageUrl, 'PNG', 0, 0, pageWidth, pageHeight);
 
     // Content from page 2
@@ -148,6 +144,10 @@ const EbookGenerator = () => {
         doc.setFontSize(18);
         doc.text(line.slice(3), 20, y);
         y += 25;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(14);
+        doc.text(line.slice(4), 20, y);
+        y += 20;
       } else if (line) {
         doc.setFontSize(12);
         const split = doc.splitTextToSize(line, pageWidth - 40);
@@ -164,7 +164,7 @@ const EbookGenerator = () => {
   const downloadCoverImage = (ebook: Ebook) => {
     const a = document.createElement('a');
     a.href = ebook.coverImageUrl;
-    a.download = `${ebook.title}_cover.png`;
+    a.download = `${ebook.title}_cover.svg`;
     a.click();
   };
 
@@ -177,14 +177,13 @@ const EbookGenerator = () => {
         >
           <h1 className="text-3xl font-bold mb-2">AI Ebook Generator</h1>
           <p className="text-muted-foreground">
-            Create a real, readable ebook.
+            Create a real, full ebook.
           </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
         >
           <Card className="p-8">
             <div className="space-y-6">
@@ -193,10 +192,10 @@ const EbookGenerator = () => {
                   Topic
                 </label>
                 <Input
-                  placeholder="Money making"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   disabled={isGenerating}
+                  placeholder="Money making"
                 />
               </div>
 
@@ -216,7 +215,7 @@ const EbookGenerator = () => {
               </div>
 
               {generatedTitle && (
-                <div className="p-4 rounded bg-blue-50">
+                <div className="p-4 rounded bg-purple-50">
                   <div className="flex items-center gap-2 text-sm mb-1">
                     <Sparkles className="w-4 h-4" />
                     <span>Title</span>
@@ -228,7 +227,7 @@ const EbookGenerator = () => {
               {isGenerating && (
                 <div className="space-y-3">
                   <Progress value={progress} />
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>{status}</span>
                   </div>
@@ -240,7 +239,7 @@ const EbookGenerator = () => {
                 disabled={isGenerating || !topic.trim()}
                 className="w-full"
               >
-                {isGenerating ? "Generating..." : "Generate Ebook"}
+                Generate Ebook
               </Button>
             </div>
           </Card>
