@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useEbookStore, Ebook } from "@/hooks/useEbookStore";
 import { supabase } from "@/integrations/supabase/client";
-import { jsPDF } from 'jspdf'; // Add "npm install jspdf" in terminal if not done
+import { jsPDF } from 'jspdf';
 
 const EbookGenerator = () => {
   const [topic, setTopic] = useState("");
@@ -65,11 +65,11 @@ const EbookGenerator = () => {
 
     try {
       setProgress(15);
-      setStatus("Analyzing topic and generating content...");
+      setStatus("Generating full ebook content...");
 
       const { data: contentData, error: contentError } = await supabase.functions.invoke(
         "generate-ebook-content",
-        { body: { topic, title: generatedTitle || topic, length: ebookLength } }
+        { body: { topic, title: generatedTitle || topic, length: ebookLength, author: "Yesh Malik", github: "yeshmalik__", twitter: "@yeshmalik__" } }
       );
 
       if (contentError) throw contentError;
@@ -79,7 +79,7 @@ const EbookGenerator = () => {
 
       const { data: coverData, error: coverError } = await supabase.functions.invoke(
         "generate-ebook-cover",
-        { body: { title: generatedTitle || topic, topic } }
+        { body: { title: generatedTitle || topic, topic, author: "Yesh Malik" } }
       );
 
       if (coverError) throw coverError;
@@ -91,7 +91,7 @@ const EbookGenerator = () => {
         id: crypto.randomUUID(),
         title: generatedTitle || topic,
         topic,
-        content: contentData.content,
+        content: contentData.content, // Filled template with real text
         coverImageUrl: coverData.imageUrl,
         pages: contentData.pages,
         createdAt: new Date().toISOString(),
@@ -104,12 +104,8 @@ const EbookGenerator = () => {
 
       toast({
         title: "Ebook Generated!",
-        description: `Your ${ebook.pages}-page ebook is ready for download.`,
+        description: `Your ${ebook.pages}-page ebook is ready for download. Full content written!`,
       });
-
-      // Auto download PDF and Cover
-      generatePDF(ebook);
-      downloadCoverImage(ebook);
     } catch (error: unknown) {
       console.error("Error generating ebook:", error);
       toast({
@@ -124,12 +120,64 @@ const EbookGenerator = () => {
 
   const generatePDF = (ebook: Ebook) => {
     const doc = new jsPDF();
-    doc.text(ebook.content, 10, 10); // Simple text for now - add more formatting if needed
-    doc.save(`${ebook.title}.pdf`);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Page 1: Cover with your picture (use a placeholder or your image URL)
+    doc.addImage(ebook.coverImageUrl || 'https://via.placeholder.com/600x900?text=Cover', 'JPEG', 0, 0, pageWidth, pageHeight);
+    doc.save('cover-only.pdf'); // First, save cover as separate if needed
+
+    // New PDF for full book
+    const fullDoc = new jsPDF();
+    let y = 20;
+
+    // Cover on first page
+    fullDoc.addImage(ebook.coverImageUrl || 'https://via.placeholder.com/210x297?text=Cover', 'JPEG', 0, 0, 210, 297);
+    y = 297 + 20;
+
+    // Add content below cover
+    const lines = ebook.content.split('\n');
+    for (let line of lines) {
+      line = line.trim();
+      if (y > pageHeight - 20) {
+        fullDoc.addPage();
+        y = 20;
+      }
+
+      if (line.startsWith('# ')) {
+        fullDoc.setFontSize(20);
+        fullDoc.setFont("helvetica", "bold");
+        fullDoc.text(line.slice(2), 20, y);
+        y += 25;
+      } else if (line.startsWith('## ')) {
+        fullDoc.setFontSize(16);
+        fullDoc.setFont("helvetica", "bold");
+        fullDoc.text(line.slice(3), 20, y);
+        y += 20;
+      } else if (line.startsWith('### ')) {
+        fullDoc.setFontSize(14);
+        fullDoc.setFont("helvetica", "bold");
+        fullDoc.text(line.slice(4), 20, y);
+        y += 15;
+      } else if (line) {
+        fullDoc.setFontSize(12);
+        const split = fullDoc.splitTextToSize(line, 170);
+        fullDoc.text(split, 20, y);
+        y += split.length * 6;
+      } else {
+        y += 10;
+      }
+    }
+
+    fullDoc.save(`${ebook.title}.pdf`);
   };
 
   const downloadCoverImage = (ebook: Ebook) => {
-    window.open(ebook.coverImageUrl, '_blank');
+    if (!ebook.coverImageUrl) return;
+    const a = document.createElement('a');
+    a.href = ebook.coverImageUrl;
+    a.download = `${ebook.title}_cover.png`;
+    a.click();
   };
 
   return (
@@ -169,16 +217,16 @@ const EbookGenerator = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Ebook Length
+                  Ebook Length (Token-Based)
                 </label>
                 <select
                   value={ebookLength}
                   onChange={(e) => setEbookLength(e.target.value)}
                   className="w-full p-2 rounded border"
                 >
-                  <option value="short">Short (5-10 pages)</option>
+                  <option value="short">Short (5-10 pages, fewer tokens)</option>
                   <option value="medium">Medium (10-20 pages)</option>
-                  <option value="long">Long (40-50 pages)</option>
+                  <option value="long">Long (40-50 pages, more tokens)</option>
                 </select>
               </div>
 
@@ -268,7 +316,7 @@ const EbookGenerator = () => {
                   <div className="flex flex-wrap gap-4 pt-4">
                     <Button onClick={() => generatePDF(generatedEbook)} className="flex-1 min-w-[150px]">
                       <Download className="w-4 h-4 mr-2" />
-                      Download PDF
+                      Download PDF (Full Book with Cover on Page 1)
                     </Button>
                     <Button
                       variant="outline"
@@ -277,7 +325,7 @@ const EbookGenerator = () => {
                       disabled={!generatedEbook.coverImageUrl}
                     >
                       <Image className="w-4 h-4 mr-2" />
-                      Download Cover
+                      Download Cover Image
                     </Button>
                   </div>
                 </div>
