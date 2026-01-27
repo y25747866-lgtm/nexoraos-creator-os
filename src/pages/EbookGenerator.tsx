@@ -124,15 +124,21 @@ const EbookGenerator = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Page 1: Cover
-    if (ebook.coverImageUrl) {
-      doc.addImage(ebook.coverImageUrl, 'PNG', 0, 0, pageWidth, pageHeight);
-    } else {
+    // Page 1: Cover - fallback text if SVG (jsPDF can't add SVG)
+    if (ebook.coverImageUrl && ebook.coverImageUrl.startsWith('data:image/svg')) {
+      // Text fallback for cover
       doc.setFillColor(30, 41, 59);
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
       doc.setFontSize(40);
       doc.setTextColor(251, 191, 36);
       doc.text(ebook.title, pageWidth / 2, pageHeight / 2 - 50, { align: 'center' });
+      doc.setFontSize(20);
+      doc.text(ebook.topic, pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
+      doc.setFontSize(16);
+      doc.text("NexoraOS by Yesh Malik", pageWidth / 2, pageHeight - 50, { align: 'center' });
+    } else {
+      // If PNG, add image
+      doc.addImage(ebook.coverImageUrl, 'PNG', 0, 0, pageWidth, pageHeight);
     }
 
     // Content from page 2
@@ -152,6 +158,10 @@ const EbookGenerator = () => {
         doc.setFontSize(18);
         doc.text(line.slice(3), 20, y);
         y += 25;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(14);
+        doc.text(line.slice(4), 20, y);
+        y += 20;
       } else if (line) {
         doc.setFontSize(12);
         const split = doc.splitTextToSize(line, pageWidth - 40);
