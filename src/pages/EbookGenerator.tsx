@@ -68,7 +68,7 @@ const EbookGenerator = () => {
       setStatus("Generating title...");
 
       setProgress(50);
-      setStatus("Writing full ebook... (this may take a minute for long ebooks)");
+      setStatus("Writing full ebook... (long ebooks take longer)");
 
       const { data: contentData, error: contentError } = await supabase.functions.invoke(
         "generate-ebook-content",
@@ -105,7 +105,7 @@ const EbookGenerator = () => {
 
       toast({
         title: "Success!",
-        description: `Your ${ebook.pages}-page ebook is ready!`,
+        description: `Your ~${ebook.pages}-page ebook is ready!`,
       });
     } catch (error: unknown) {
       console.error("Generation error:", error);
@@ -124,7 +124,7 @@ const EbookGenerator = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Page 1: Cover (text fallback because jsPDF can't render SVG directly)
+    // Page 1: Cover (text fallback)
     doc.setFillColor(30, 41, 59);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
     doc.setFontSize(40);
