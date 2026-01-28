@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Loader2, Sparkles, Download, Image } from "lucide-react";
+import { BookOpen, Loader2, Sparkles, Download, Image as ImageIcon } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,15 +60,15 @@ const EbookGenerator = () => {
 
     setIsGenerating(true);
     setProgress(0);
-    setStatus("Starting...");
+    setStatus("Starting generation...");
     setGeneratedEbook(null);
 
     try {
       setProgress(30);
-      setStatus("Generating title...");
+      setStatus("Creating title...");
 
       setProgress(50);
-      setStatus("Writing full ebook... (long ebooks take longer)");
+      setStatus(`Writing full ebook... (${ebookLength === "long" ? "This may take 1-2 minutes for 40-50 pages" : "Quick generation in progress"})`);
 
       const { data: contentData, error: contentError } = await supabase.functions.invoke(
         "generate-ebook-content",
@@ -78,7 +78,7 @@ const EbookGenerator = () => {
       if (contentError) throw contentError;
 
       setProgress(80);
-      setStatus("Designing cover...");
+      setStatus("Designing beautiful cover...");
 
       const { data: coverData, error: coverError } = await supabase.functions.invoke(
         "generate-ebook-cover",
@@ -88,7 +88,7 @@ const EbookGenerator = () => {
       if (coverError) throw coverError;
 
       setProgress(100);
-      setStatus("Done!");
+      setStatus("Your ebook is ready!");
 
       const ebook: Ebook = {
         id: crypto.randomUUID(),
@@ -105,7 +105,7 @@ const EbookGenerator = () => {
 
       toast({
         title: "Success!",
-        description: `Your ~${ebook.pages}-page ebook is ready!`,
+        description: `Your ~${ebook.pages}-page ebook is ready for download!`,
       });
     } catch (error: unknown) {
       console.error("Generation error:", error);
@@ -124,13 +124,14 @@ const EbookGenerator = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Page 1: Cover (text fallback)
-    doc.setFillColor(30, 41, 59);
+    // Page 1: Cover (text fallback - jsPDF doesn't support SVG natively)
+    doc.setFillColor(30, 41, 59); // Dark background
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
     doc.setFontSize(40);
-    doc.setTextColor(251, 191, 36);
+    doc.setTextColor(251, 191, 36); // Gold text
     doc.text(ebook.title, pageWidth / 2, pageHeight / 2 - 50, { align: 'center' });
     doc.setFontSize(20);
+    doc.setTextColor(226, 232, 240);
     doc.text(ebook.topic, pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
     doc.setFontSize(16);
     doc.text("NexoraOS by Yesh Malik", pageWidth / 2, pageHeight - 50, { align: 'center' });
@@ -146,14 +147,22 @@ const EbookGenerator = () => {
       }
       if (line.startsWith('# ')) {
         doc.setFontSize(24);
+        doc.setTextColor(0, 0, 0);
         doc.text(line.slice(2), 20, y);
         y += 30;
       } else if (line.startsWith('## ')) {
         doc.setFontSize(18);
+        doc.setTextColor(0, 0, 0);
         doc.text(line.slice(3), 20, y);
         y += 25;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(line.slice(4), 20, y);
+        y += 20;
       } else if (line) {
         doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
         const split = doc.splitTextToSize(line, pageWidth - 40);
         doc.text(split, 20, y);
         y += split.length * 8;
@@ -162,14 +171,17 @@ const EbookGenerator = () => {
       }
     }
 
-    doc.save(`${ebook.title}.pdf`);
+    doc.save(`${ebook.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
   };
 
   const downloadCoverImage = (ebook: Ebook) => {
-    if (!ebook.coverImageUrl) return;
+    if (!ebook.coverImageUrl) {
+      toast({ title: "No cover available", variant: "destructive" });
+      return;
+    }
     const a = document.createElement('a');
     a.href = ebook.coverImageUrl;
-    a.download = `${ebook.title}_cover.svg`;
+    a.download = `${ebook.title.replace(/[^a-zA-Z0-9]/g, '_')}_cover.svg`;
     a.click();
   };
 
@@ -186,12 +198,23 @@ const EbookGenerator = () => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Topic</label>
-                <Input value={topic} onChange={(e) => setTopic(e.target.value)} disabled={isGenerating} placeholder="Money making" />
+                <Input
+                  placeholder="e.g., Money making"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  disabled={isGenerating}
+                  className="text-lg py-6"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Length</label>
-                <select value={ebookLength} onChange={(e) => setEbookLength(e.target.value)} className="w-full p-2 rounded border">
+                <select
+                  value={ebookLength}
+                  onChange={(e) => setEbookLength(e.target.value)}
+                  className="w-full p-3 rounded-md border border-input bg-background"
+                  disabled={isGenerating}
+                >
                   <option value="short">Short (5-10 pages)</option>
                   <option value="medium">Medium (15-25 pages)</option>
                   <option value="long">Long (40-50 pages)</option>
@@ -199,27 +222,45 @@ const EbookGenerator = () => {
               </div>
 
               {generatedTitle && (
-                <div className="p-4 rounded bg-purple-50">
-                  <div className="flex items-center gap-2 text-sm mb-1">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl bg-primary/10 border border-primary/20"
+                >
+                  <div className="flex items-center gap-2 text-sm text-primary mb-1">
                     <Sparkles className="w-4 h-4" />
-                    <span>Title</span>
+                    <span>AI Generated Title</span>
                   </div>
-                  <p className="font-bold text-lg">{generatedTitle}</p>
-                </div>
+                  <p className="font-semibold text-lg">{generatedTitle}</p>
+                </motion.div>
               )}
 
               {isGenerating && (
                 <div className="space-y-3">
-                  <Progress value={progress} />
-                  <div className="flex items-center gap-2">
+                  <Progress value={progress} className="h-2" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>{status}</span>
                   </div>
                 </div>
               )}
 
-              <Button onClick={generateEbook} disabled={isGenerating || !topic.trim()} className="w-full">
-                {isGenerating ? "Generating..." : "Generate Ebook"}
+              <Button
+                onClick={generateEbook}
+                disabled={isGenerating || !topic.trim()}
+                className="w-full py-6 text-lg font-medium"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-5 h-5 mr-2" />
+                    Generate Ebook
+                  </>
+                )}
               </Button>
             </div>
           </Card>
@@ -229,22 +270,45 @@ const EbookGenerator = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="p-8">
               <h2 className="text-xl font-semibold mb-6">Your Ebook is Ready!</h2>
-              
+
               <div className="flex flex-col md:flex-row gap-8">
-                <div className="w-full md:w-48">
-                  <img src={generatedEbook.coverImageUrl} alt="Cover" className="w-full rounded-lg shadow-lg" />
+                <div className="w-full md:w-48 shrink-0">
+                  {generatedEbook.coverImageUrl ? (
+                    <img
+                      src={generatedEbook.coverImageUrl}
+                      alt={generatedEbook.title}
+                      className="w-full rounded-lg shadow-lg object-cover aspect-[3/4]"
+                    />
+                  ) : (
+                    <div className="w-full aspect-[3/4] rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center p-4 text-center">
+                      <span className="text-white font-semibold">
+                        {generatedEbook.title}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex-1 space-y-4">
                   <h3 className="text-2xl font-bold">{generatedEbook.title}</h3>
-                  <p>Topic: {generatedEbook.topic}</p>
-                  <p>Pages: ~{generatedEbook.pages}</p>
+                  <p className="text-muted-foreground">
+                    Topic: {generatedEbook.topic}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Pages: ~{generatedEbook.pages}
+                  </p>
 
-                  <div className="flex gap-4">
-                    <Button onClick={() => generatePDF(generatedEbook)}>
+                  <div className="flex flex-wrap gap-4 pt-4">
+                    <Button onClick={() => generatePDF(generatedEbook)} className="flex-1 min-w-[150px]">
+                      <Download className="w-4 h-4 mr-2" />
                       Download PDF
                     </Button>
-                    <Button variant="outline" onClick={() => downloadCoverImage(generatedEbook)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadCoverImage(generatedEbook)}
+                      className="flex-1 min-w-[150px]"
+                      disabled={!generatedEbook.coverImageUrl}
+                    >
+                      <ImageIcon className="w-4 h-4 mr-2" />
                       Download Cover
                     </Button>
                   </div>
