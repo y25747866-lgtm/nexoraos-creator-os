@@ -11,13 +11,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '1mb', // Whop webhooks are small
+      sizeLimit: '1mb',
     },
   },
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Allow CORS (Whop sends from different origin)
+  // CORS headers (Whop sends from different origin)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-whop-signature');
@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const event = payload.event;
   const data = payload.data;
 
-  // Handle relevant events
+  // Handle relevant Whop events
   if (event === 'payment.succeeded' || event === 'subscription.created' || event === 'subscription.updated') {
     const userEmail = data.customer_email || data.user_email;
     const planId = data.plan_id;
@@ -67,31 +67,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Missing email in payload' });
     }
 
-    // Save/update in Supabase
-    const { error } = await supabase.from('paid_users').upsert(
+    // Save to the 'subscriptions' table
+    const { error } = await supabase.from('subscriptions').upsert(
       {
-        email: userEmail,
-        whop_user_id: whopUserId,
-        plan_id: planId,
-        paid_at: new Date().toISOString(),
+        plan: planId,
         status: 'active',
+        whop_user_id: whopUserId,
+        user_id: null, // set later if you have Supabase auth user ID
+        created_at: new Date().toISOString(),
+        expires_at: null, // or calculate from plan duration
+        updated_at: new Date().toISOString(),
       },
-      { onConflict: 'email' }
+      { onConflict: 'whop_user_id' } // upsert on whop_user_id to avoid duplicates
     );
 
     if (error) {
       console.error('Supabase upsert error:', error);
-      return res.status(500).json({ error: 'Failed to save user' });
+      return res.status(500).json({ error: 'Failed to save subscription' });
     }
 
-    return res.status(200).json({ success: true, message: 'User marked as paid' });
+    return res.status(200).json({ success: true, message: 'Subscription recorded' });
   }
 
   // Ignore other events
   return res.status(200).json({ success: true, message: 'Event ignored' });
 }
 
-// Helper to get raw body (needed for signature)
+// Helper to get raw body (required for signature verification)
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
