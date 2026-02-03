@@ -21,11 +21,12 @@ const EbookGenerator = () => {
   const { toast } = useToast();
   const addEbook = useEbookStore((state) => state.addEbook);
 
+  // Auto-generate title when topic is typed (after 3+ characters)
   useEffect(() => {
     if (topic.length > 3) {
       const timeout = setTimeout(() => {
         generateTitle(topic);
-      }, 500);
+      }, 600);
       return () => clearTimeout(timeout);
     } else {
       setGeneratedTitle("");
@@ -144,10 +145,10 @@ const EbookGenerator = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
-    const lineHeight = 7;
+    const maxWidth = pageWidth - margin * 2;
     let y = margin;
 
-    // Page 1: Cover (text fallback - jsPDF cannot render SVG)
+    // Cover page
     doc.setFillColor(30, 41, 59);
     doc.rect(0, 0, pageWidth, pageHeight, "F");
     doc.setFont("helvetica", "bold");
@@ -166,52 +167,54 @@ const EbookGenerator = () => {
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(0);
 
     const lines = ebook.content.split("\n");
 
     for (let line of lines) {
-      if (y > pageHeight - margin - 20) {
-        // Add page number
+      if (y > pageHeight - margin - 30) {
+        // Page number
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 20, pageHeight - 10);
         doc.addPage();
         y = margin;
         doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
+        doc.setTextColor(0);
       }
 
-      if (line.trim() === "") {
-        y += lineHeight; // paragraph spacing
+      const trimmed = line.trim();
+      if (trimmed === "") {
+        y += 10;
         continue;
       }
 
-      if (line.startsWith("# ")) {
+      if (trimmed.startsWith("# ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(24);
-        const text = line.slice(2).trim();
-        doc.text(text, margin, y);
+        doc.text(trimmed.slice(2), margin, y);
         y += 30;
-      } else if (line.startsWith("## ")) {
+      } else if (trimmed.startsWith("## ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(18);
-        const text = line.slice(3).trim();
-        doc.text(text, margin, y);
+        doc.text(trimmed.slice(3), margin, y);
         y += 25;
-      } else if (line.startsWith("### ")) {
+      } else if (trimmed.startsWith("### ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        const text = line.slice(4).trim();
-        doc.text(text, margin, y);
+        doc.text(trimmed.slice(4), margin, y);
         y += 20;
+      } else if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("+ ")) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.text("• " + trimmed.slice(2), margin + 10, y);
+        y += 8;
       } else {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
-        const maxWidth = pageWidth - margin * 2;
-        const splitText = doc.splitTextToSize(line, maxWidth);
-        doc.text(splitText, margin, y);
-        y += splitText.length * lineHeight;
+        const wrapped = doc.splitTextToSize(trimmed, maxWidth);
+        doc.text(wrapped, margin, y);
+        y += wrapped.length * 7;
       }
     }
 
