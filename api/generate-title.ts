@@ -1,39 +1,57 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   try {
-    const { topic } = req.body as { topic: string };
+    const { topic } = req.body;
+    if (!topic) return res.status(400).json({ error: "Missing topic" });
 
-    if (!topic) return res.status(400).json({ error: 'Missing topic' });
+    const prompt = `
+You are a world-class ebook publishing strategist.
 
-    // Prompt for premium title + subtitle
-    const prompt = `Generate a big, bold main title (H1-style) for an ebook on "${topic}". Should be clear, actionable, and promise a transformation. Example: "The $10K Blueprint".
-Generate a subtitle (H2-style). Should explain the benefit or outcome in one line. Example: "How Beginners Build Profitable Online Income in 90 Days".
-Output only JSON: {"title": "Main Title", "subtitle": "Subtitle"}`;
+Generate a professional, premium ebook title and subtitle for this topic:
+"${topic}"
 
-    const resAI = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+Rules:
+- Title must be bold, transformational, and Amazon-style
+- Subtitle must explain the benefit clearly
+- No emojis
+- No quotes
+- No explanations
+
+Output format:
+Title: ...
+Subtitle: ...
+`;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.SITE_URL || "https://localhost",
+        "X-Title": process.env.SITE_NAME || "NexoraOS",
       },
       body: JSON.stringify({
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,
-      })
+        temperature: 0.6,
+      }),
     });
 
-    if (!resAI.ok) throw new Error(await resAI.text());
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "";
 
-    const data = await resAI.json();
-    const generated = JSON.parse(data.choices[0].message.content);
+    const titleMatch = text.match(/Title:\s*(.+)/i);
+    const subtitleMatch = text.match(/Subtitle:\s*(.+)/i);
 
-    res.status(200).json({ title: generated.title, subtitle: generated.subtitle });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message || "Failed to generate title" });
+    res.json({
+      title: titleMatch?.[1]?.trim() || topic,
+      subtitle: subtitleMatch?.[1]?.trim() || "",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Title generation failed" });
   }
-  }
+      }
