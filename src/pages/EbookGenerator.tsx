@@ -21,7 +21,7 @@ const EbookGenerator = () => {
   const { toast } = useToast();
   const addEbook = useEbookStore((state) => state.addEbook);
 
-  // Auto-generate title when topic is typed (after 3+ characters)
+  // Auto-generate title as user types (after 3+ chars)
   useEffect(() => {
     if (topic.length > 3) {
       const timeout = setTimeout(() => {
@@ -141,25 +141,37 @@ const EbookGenerator = () => {
   };
 
   const generatePDF = (ebook: Ebook) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4'
+    });
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
+    const margin = 60;
     const maxWidth = pageWidth - margin * 2;
+    const lineHeight = 18;
     let y = margin;
+
+    doc.setFont("helvetica");
 
     // Cover page
     doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, pageWidth, pageHeight, "F");
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(40);
+    doc.setFontSize(48);
     doc.setTextColor(251, 191, 36);
-    doc.text(ebook.title, pageWidth / 2, pageHeight / 2 - 50, { align: "center" });
-    doc.setFontSize(20);
+    const titleLines = doc.splitTextToSize(ebook.title, maxWidth);
+    doc.text(titleLines, pageWidth / 2, pageHeight / 2 - 80, { align: 'center' });
+
+    doc.setFontSize(24);
     doc.setTextColor(226, 232, 240);
-    doc.text(ebook.topic, pageWidth / 2, pageHeight / 2 + 20, { align: "center" });
-    doc.setFontSize(16);
-    doc.text("NexoraOS by Yesh Malik", pageWidth / 2, pageHeight - 50, { align: "center" });
+    doc.text(ebook.topic, pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
+
+    doc.setFontSize(18);
+    doc.text("NexoraOS", pageWidth / 2, pageHeight - 100, { align: 'center' });
 
     // Content pages
     doc.addPage();
@@ -172,11 +184,10 @@ const EbookGenerator = () => {
     const lines = ebook.content.split("\n");
 
     for (let line of lines) {
-      if (y > pageHeight - margin - 30) {
-        // Page number
+      if (y > pageHeight - margin - 40) {
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 20, pageHeight - 10);
+        doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 40, pageHeight - 30);
         doc.addPage();
         y = margin;
         doc.setFontSize(12);
@@ -185,43 +196,44 @@ const EbookGenerator = () => {
 
       const trimmed = line.trim();
       if (trimmed === "") {
-        y += 10;
+        y += lineHeight;
         continue;
       }
 
+      // Headings
       if (trimmed.startsWith("# ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(24);
         doc.text(trimmed.slice(2), margin, y);
-        y += 30;
+        y += 35;
       } else if (trimmed.startsWith("## ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(18);
         doc.text(trimmed.slice(3), margin, y);
-        y += 25;
+        y += 28;
       } else if (trimmed.startsWith("### ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
         doc.text(trimmed.slice(4), margin, y);
-        y += 20;
+        y += 22;
       } else if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("+ ")) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
-        doc.text("• " + trimmed.slice(2), margin + 10, y);
-        y += 8;
+        doc.text("• " + trimmed.slice(2), margin + 15, y);
+        y += lineHeight;
       } else {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
         const wrapped = doc.splitTextToSize(trimmed, maxWidth);
         doc.text(wrapped, margin, y);
-        y += wrapped.length * 7;
+        y += wrapped.length * lineHeight;
       }
     }
 
     // Final page number
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 20, pageHeight - 10);
+    doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 40, pageHeight - 30);
 
     doc.save(`${ebook.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
   };
