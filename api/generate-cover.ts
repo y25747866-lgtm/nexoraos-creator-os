@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const { title, subtitle, topic } = req.body;
 
     const prompt = `
+You are a world-class publishing studio.
 Generate a separate professional cover design prompt for book title "\( {title}" with subtitle " \){subtitle}" and author/brand "NexoraOS".
 Include:
 Emotional tone
@@ -42,4 +42,4 @@ Output only the prompt text.
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-}
+      }
