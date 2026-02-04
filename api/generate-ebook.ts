@@ -1,102 +1,69 @@
-export const runtime = "nodejs";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-function buildSystemPrompt(title: string, topic: string) {
-  return `
-You are a professional nonfiction publishing engine.
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 
-You do NOT write blog posts.
-You do NOT write motivational essays.
-You write structured, commercial-grade ebooks like top Amazon nonfiction titles and Synthesise.ai.
+async function callAI(prompt: string) {
+  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "mistralai/mixtral-8x7b-instruct",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 3500,
+      temperature: 0.7
+    })
+  });
 
-════════════════════════════════════
-BOOK STRUCTURE (MANDATORY)
-════════════════════════════════════
-
-1. Title Page
-2. Copyright Page
-3. Reader Promise Page
-4. How To Use This Book
-5. Table of Contents
-6. Introduction (Problem → Cost → Solution → Outcome)
-7. 8 Core Chapters
-8. Final Action Plan
-9. Summary
-10. Brand Signature Page
-
-════════════════════════════════════
-CHAPTER FORMAT (MANDATORY)
-════════════════════════════════════
-
-Each chapter MUST contain:
-1. Chapter Title
-2. Core Problem Explanation
-3. Mental Model / Framework
-4. Step-by-Step Execution Guide
-5. Examples
-6. Common Mistakes
-7. Tools / Checklists
-8. Action Exercises
-9. Chapter Summary
-
-════════════════════════════════════
-FORMAT RULES
-════════════════════════════════════
-- Markdown
-- Short paragraphs
-- Bullets
-- Tables
-- Diagrams when helpful
-- No fluff
-- No hype
-- No motivation essays
-
-════════════════════════════════════
-BOOK DETAILS
-════════════════════════════════════
-Title: ${title}
-Topic: ${topic}
-
-════════════════════════════════════
-
-Now generate the COMPLETE ebook in Markdown following ALL rules above.
-`;
+  if (!r.ok) throw new Error(await r.text());
+  const j = await r.json();
+  return j.choices[0].message.content.trim();
 }
 
-export async function POST(req: Request) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
   try {
-    const { topic, title } = await req.json();
-    if (!topic || !title) {
-      return new Response(JSON.stringify({ error: "Missing topic or title" }), { status: 400 });
+    const { title, subtitle, topic, length } = req.body;
+
+    const chapters = length === "long" ? 8 : length === "short" ? 3 : 5;
+
+    let book = "";
+
+    // COVER PAGE
+    book += `${title}\n\n${subtitle}\n\nNexoraOS\n\n`;
+
+    // COPYRIGHT
+    book += `Copyright © ${new Date().getFullYear()} NexoraOS\nAll rights reserved.\n\n`;
+
+    // INTRO LETTER
+    book += `INTRODUCTION\n\n`;
+    book += await callAI(`Write a professional, inspiring introduction for an ebook titled "${title}" about "${topic}".`);
+
+    // TOC
+    book += `\n\nTABLE OF CONTENTS\n\n`;
+    const toc = await callAI(`Generate ${chapters} professional chapter titles for an ebook about "${topic}". Output one per line.`);
+    book += toc + "\n\n";
+
+    // CHAPTERS
+    for (let i = 1; i <= chapters; i++) {
+      book += `CHAPTER ${i}\n\n`;
+      book += await callAI(`Write a full, detailed, professional ebook chapter ${i} about "${topic}". Use clear headings, examples, and actionable advice.`);
+      book += "\n\n";
     }
 
-    const systemPrompt = buildSystemPrompt(title, topic);
+    // CLOSING
+    book += `CONCLUSION\n\n`;
+    book += await callAI(`Write a strong closing section for an ebook about "${topic}".`);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1",
-        messages: [{ role: "system", content: systemPrompt }],
-        temperature: 0.15,
-        max_tokens: 14000,
-      }),
-    });
+    const words = book.split(/\s+/).length;
+    const pages = Math.ceil(words / 500);
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(err);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content || "";
-    const pages = Math.max(8, Math.round(content.split(" ").length / 350));
-
-    return Response.json({ content, pages });
-  } catch (err) {
-    console.error("generate-ebook error:", err);
-    return new Response(JSON.stringify({ error: "Failed to generate ebook" }), { status: 500 });
+    res.status(200).json({ content: book, pages });
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ error: "Ebook generation failed" });
   }
-}
+                         }
