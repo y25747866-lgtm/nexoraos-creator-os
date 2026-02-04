@@ -63,9 +63,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let { title, subtitle, topic, length = "medium" } = req.body;
 
+    // Only topic is truly required
     if (!topic) return res.status(400).json({ error: "topic is required" });
 
-    // AUTO-GENERATE TITLE/SUBTITLE IF MISSING
+    // Auto-generate title & subtitle if missing
     if (!title || !subtitle) {
       const generated = await generateTitleInternal(topic);
       title = generated.title;
@@ -329,4 +330,4 @@ Output only the section.`,
     console.error(e);
     res.status(500).json({ error: "Ebook generation failed", details: e.message });
   }
-                      }
+         }
