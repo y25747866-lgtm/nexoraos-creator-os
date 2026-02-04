@@ -30,24 +30,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { topic, length = "medium" } = req.body;
     if (!topic) return res.status(400).json({ error: "topic is required" });
 
-    /* ---------- STEP 1: AUTO TITLE ---------- */
-    const titleData = await callAI(`
-Generate a bestselling ebook title + subtitle for topic "${topic}".
+    // 🔥 AUTO TITLE
+    const t = await callAI(`
+Generate a bestselling ebook title and subtitle for topic "${topic}".
 Return ONLY JSON:
 {"title":"...","subtitle":"..."}
 `, 150);
 
-    const parsed = JSON.parse(titleData.match(/\{[\s\S]*\}/)?.[0] || "{}");
+    const parsed = JSON.parse(t.match(/\{[\s\S]*\}/)?.[0] || "{}");
     const title = parsed.title || `Mastering ${topic}`;
     const subtitle = parsed.subtitle || `The Complete Guide to ${topic}`;
 
-    /* ---------- LENGTH CONFIG ---------- */
     let chapters = 6;
     let words = "1200-1800";
     if (length === "short") { chapters = 3; words = "600-900"; }
     if (length === "long") { chapters = 10; words = "1800-2500"; }
 
-    /* ---------- STRUCTURE ---------- */
     let content = `
 ${title}
 ${subtitle}
@@ -108,13 +106,13 @@ CHAPTER ${i}
 Write Chapter ${i} of "${title}" about "${topic}".
 
 Structure:
-1. Powerful hook
-2. Problem reality
+1. Hook
+2. Problem
 3. Truth shift
-4. Named framework/system
+4. Named framework
 5. Deep explanation
-6. Real examples
-7. Step-by-step actions
+6. Examples
+7. Action steps
 8. Identity shift
 
 Length: ${words}
@@ -127,7 +125,7 @@ Human, premium, no filler.
 SUMMARY
 `;
     content += await callAI(`
-Summarize the key lessons of "${title}" in a powerful, memorable way.
+Summarize the key lessons of "${title}" in a powerful way.
 `);
 
     content += `
@@ -135,7 +133,7 @@ Summarize the key lessons of "${title}" in a powerful, memorable way.
 FINAL MESSAGE
 `;
     content += await callAI(`
-Write a motivational closing message from the author encouraging real action and transformation.
+Write a motivational closing message from the author encouraging real action.
 `);
 
     const wordCount = content.split(/\s+/).length;
@@ -153,4 +151,4 @@ Write a motivational closing message from the author encouraging real action and
     console.error(e);
     res.status(500).json({ error: "Ebook generation failed" });
   }
-        }
+    }
