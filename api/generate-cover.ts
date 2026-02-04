@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+export const runtime = "nodejs";
 
 const BRAND_NAME = process.env.BRAND_NAME || "NexoraOS";
 const PRIMARY_COLOR = process.env.COVER_PRIMARY_COLOR || "#0f172a";
@@ -53,22 +53,22 @@ function generateSVG(title: string, subtitle: string | null) {
 `;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
+export async function POST(req: Request) {
   try {
-    const { title, subtitle } = req.body;
-    if (!title) return res.status(400).json({ error: "Missing title" });
+    const { title, subtitle } = await req.json();
+    if (!title) {
+      return new Response(JSON.stringify({ error: "Missing title" }), { status: 400 });
+    }
 
     const safeSubtitle = subtitle && subtitle.length < 80 ? subtitle : null;
     const svg = generateSVG(title, safeSubtitle);
     const base64 = Buffer.from(svg).toString("base64");
 
-    res.status(200).json({
+    return Response.json({
       imageUrl: `data:image/svg+xml;base64,${base64}`,
     });
-  } catch (error) {
-    console.error("generate-cover error:", error);
-    res.status(500).json({ error: "Failed to generate cover" });
+  } catch (err) {
+    console.error("generate-cover error:", err);
+    return new Response(JSON.stringify({ error: "Failed to generate cover" }), { status: 500 });
   }
-}
+  }
