@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!topic) return res.status(400).json({ error: "topic is required" });
 
-    // 🔥 AUTO-GENERATE TITLE/SUBTITLE IF MISSING
+    // AUTO-GENERATE TITLE/SUBTITLE IF MISSING
     if (!title || !subtitle) {
       const generated = await generateTitleInternal(topic);
       title = generated.title;
@@ -105,7 +105,7 @@ PAGE 5 — HOW TO USE THIS BOOK
 PAGE 6 — TABLE OF CONTENTS
 
 Each chapter must follow:
-Hook → Problem → Truth → Framework → Deep Explanation → Examples → Action Steps → Identity Shift
+Hook → Problem Reality → Truth Shift → Framework/System (named) → Deep Explanation → Examples → Action Steps → Identity Shift
 
 Final sections:
 SUMMARY
@@ -125,7 +125,7 @@ Clean formatted text.
     let book = "";
 
     // COVER
-    book += `${title}\n\n${subtitle}\n\nNexoraOS\n\n`;
+    book += `\( {title}\n\n \){subtitle}\n\nNexoraOS\n\n`;
 
     // COPYRIGHT
     const year = new Date().getFullYear();
@@ -329,4 +329,4 @@ Output only the section.`,
     console.error(e);
     res.status(500).json({ error: "Ebook generation failed", details: e.message });
   }
-        }
+                      }
