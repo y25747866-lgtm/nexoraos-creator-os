@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+export const config = { runtime: "nodejs" };
+
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 
-async function callAI(prompt: string, maxTokens = 2800) {
+async function callAI(prompt: string, max = 3000) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -12,118 +14,143 @@ async function callAI(prompt: string, maxTokens = 2800) {
     body: JSON.stringify({
       model: "mistralai/mixtral-8x7b-instruct",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.75,
-      max_tokens: maxTokens,
+      temperature: 0.65,
+      max_tokens: max,
     }),
   });
 
-  if (!r.ok) throw new Error(await r.text());
   const j = await r.json();
-  return j.choices[0].message.content.trim();
-}
-
-async function autoGenerateTitle(topic: string) {
-  const prompt = `
-Generate a professional nonfiction ebook title and subtitle for:
-"${topic}"
-
-Format:
-Title: ...
-Subtitle: ...
-`;
-  const text = await callAI(prompt, 120);
-  return {
-    title: text.match(/Title:\s*(.*)/i)?.[1] || topic,
-    subtitle: text.match(/Subtitle:\s*(.*)/i)?.[1] || "",
-  };
+  return j.choices?.[0]?.message?.content?.trim() || "";
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    let { title, subtitle, topic, length = "medium" } = req.body;
+    const { topic, length = "medium" } = req.body;
     if (!topic) return res.status(400).json({ error: "topic is required" });
 
-    if (!title || !subtitle) {
-      const auto = await autoGenerateTitle(topic);
-      title = auto.title;
-      subtitle = auto.subtitle;
+    /* ---------- STEP 1: AUTO TITLE ---------- */
+    const titleData = await callAI(`
+Generate a bestselling ebook title + subtitle for topic "${topic}".
+Return ONLY JSON:
+{"title":"...","subtitle":"..."}
+`, 150);
+
+    const parsed = JSON.parse(titleData.match(/\{[\s\S]*\}/)?.[0] || "{}");
+    const title = parsed.title || `Mastering ${topic}`;
+    const subtitle = parsed.subtitle || `The Complete Guide to ${topic}`;
+
+    /* ---------- LENGTH CONFIG ---------- */
+    let chapters = 6;
+    let words = "1200-1800";
+    if (length === "short") { chapters = 3; words = "600-900"; }
+    if (length === "long") { chapters = 10; words = "1800-2500"; }
+
+    /* ---------- STRUCTURE ---------- */
+    let content = `
+${title}
+${subtitle}
+
+By NexoraOS
+
+---
+
+COPYRIGHT
+
+Copyright © ${new Date().getFullYear()} NexoraOS.
+All rights reserved. Educational purposes only.
+
+---
+
+LETTER FROM THE AUTHOR
+`;
+
+    content += await callAI(`
+Write a powerful personal letter from the author of "${title}" about "${topic}".
+Tone: confident, mentor-like, transformational.
+Length: ${words}
+`);
+
+    content += `
+
+WHAT YOU WILL LEARN
+`;
+    content += await callAI(`
+Create a benefit-driven bullet list of outcomes readers gain from "${title}" about "${topic}".
+10–15 bullets. No fluff.
+`);
+
+    content += `
+
+HOW TO USE THIS BOOK
+`;
+    content += await callAI(`
+Explain exactly how to read and apply "${title}" for real-world results.
+System-based framing. Practical.
+`);
+
+    content += `
+
+TABLE OF CONTENTS
+`;
+    content += await callAI(`
+Generate ${chapters} professional, outcome-driven chapter titles for "${title}".
+Return numbered list only.
+`);
+
+    for (let i = 1; i <= chapters; i++) {
+      content += `
+
+CHAPTER ${i}
+`;
+      content += await callAI(`
+Write Chapter ${i} of "${title}" about "${topic}".
+
+Structure:
+1. Powerful hook
+2. Problem reality
+3. Truth shift
+4. Named framework/system
+5. Deep explanation
+6. Real examples
+7. Step-by-step actions
+8. Identity shift
+
+Length: ${words}
+Human, premium, no filler.
+`);
     }
 
-    const chapters = length === "long" ? 10 : length === "short" ? 3 : 6;
+    content += `
 
-    let book = "";
+SUMMARY
+`;
+    content += await callAI(`
+Summarize the key lessons of "${title}" in a powerful, memorable way.
+`);
 
-    // Cover
-    book += `${title}\n\n${subtitle}\n\nNexoraOS\n\n`;
+    content += `
 
-    // Copyright
-    const year = new Date().getFullYear();
-    book += `COPYRIGHT & DISCLAIMER\n\n`;
-    book += `Copyright © ${year} NexoraOS. All rights reserved.\n\n`;
-    book += `This ebook is provided for educational and informational purposes only. It is not intended as financial, legal, or professional advice. Always consult qualified professionals.\n\n`;
-    book += `NexoraOS assumes no liability for any losses or damages resulting from the use of this information. The reader bears full responsibility for their actions.\n\n`;
-    book += `Redistribution, resale, or commercial use of this ebook without express written permission from NexoraOS is strictly prohibited.\n\n`;
-    book += `All intellectual property belongs to NexoraOS.\n\n`;
+FINAL MESSAGE
+`;
+    content += await callAI(`
+Write a motivational closing message from the author encouraging real action and transformation.
+`);
 
-    // Personal Letter
-    book += `PERSONAL LETTER FROM THE AUTHOR\n\n`;
-    book += await callAI(`Write a powerful, sincere author letter for an ebook titled "${title}" about "${topic}". Build authority, trust, and emotional motivation.`);
-    book += `\n\n`;
-
-    // Outcomes
-    book += `WHAT YOU WILL ACHIEVE FROM THIS BOOK\n\n`;
-    book += await callAI(`Write bullet-point outcomes for readers of "${title}" about "${topic}". Outcome-driven, no fluff.`);
-    book += `\n\n`;
-
-    // How to use
-    book += `HOW TO USE THIS BOOK\n\n`;
-    book += await callAI(`Explain how to read and apply this book "${title}" about "${topic}" to get real results. System-based approach.`);
-    book += `\n\n`;
-
-    // TOC
-    book += `TABLE OF CONTENTS\n\n`;
-    const toc = await callAI(`Generate ${chapters} professional chapter titles for "${title}" about "${topic}". One per line.`);
-    book += toc + `\n\n`;
-    const chapterTitles = toc.split("\n").filter(Boolean);
-
-    // Chapters
-    for (let i = 0; i < chapters; i++) {
-      const chTitle = chapterTitles[i] || `Chapter ${i + 1}`;
-      book += `${chTitle}\n\n`;
-      book += await callAI(
-        `Write a full premium chapter for "${title}" about "${topic}". Chapter: "${chTitle}". Structure: Hook, Problem, Truth Shift, Framework, Deep Explanation, Examples, Action Steps, Identity Shift.`,
-        3500
-      );
-      book += `\n\n`;
-    }
-
-    // Summary
-    book += `SUMMARY\n\n`;
-    book += await callAI(`Summarize the core lessons of "${title}" about "${topic}".`);
-    book += `\n\n`;
-
-    // Closing
-    book += `CLOSING MESSAGE\n\n`;
-    book += await callAI(`Write a motivational closing message from the author for "${title}" about "${topic}".`);
-    book += `\n\n`;
-
-    // Next Steps
-    book += `NEXT STEPS\n\n`;
-    book += await callAI(`Write next steps for readers of "${title}" about "${topic}".`);
-    book += `\n\n`;
-
-    // Brand Signature
-    book += `BRAND SIGNATURE\n\n`;
-    book += await callAI(`Write a brand signature for NexoraOS related to "${title}" about "${topic}".`);
-
-    const wordCount = book.split(/\s+/).length;
+    const wordCount = content.split(/\s+/).length;
     const pages = Math.ceil(wordCount / 500);
 
-    res.status(200).json({ title, subtitle, content: book, pages, wordCount });
-  } catch (e: any) {
+    res.status(200).json({
+      title,
+      subtitle,
+      topic,
+      pages,
+      wordCount,
+      content,
+    });
+  } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Ebook generation failed" });
   }
-}
+        }
