@@ -4,9 +4,9 @@ export const config = { runtime: "nodejs" };
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 
-async function callLLM(prompt: string, maxTokens = 2000) {
+async function callLLM(prompt: string, maxTokens = 900) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -38,158 +38,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const body = req.body || {};
     const topic = body.topic || body.title;
-
     if (!topic) return res.status(400).json({ error: "topic required" });
 
     let title = body.title;
     let subtitle = body.subtitle;
 
-    // Auto-generate title/subtitle if missing
+    // Auto title if missing
     if (!title || !subtitle) {
-      const titlePrompt = `
-Generate a premium Amazon-level nonfiction book title and transformation subtitle for:
+      const raw = await callLLM(`
+Generate a premium nonfiction book title and subtitle for:
 "${topic}"
-
 Return JSON only:
 {"title":"...","subtitle":"..."}
-`;
-      const raw = await callLLM(titlePrompt, 300);
+`, 200);
       const parsed = JSON.parse(raw);
       title = parsed.title;
       subtitle = parsed.subtitle;
     }
 
-    const length = body.length || "medium";
-    const chapters = length === "long" ? 8 : length === "short" ? 3 : 5;
-    const chapterSize = length === "long" ? "1800–2500 words" : length === "short" ? "700–900 words" : "1200–1600 words";
+    const chapters = body.length === "long" ? 6 : body.length === "short" ? 2 : 4;
 
-    let book = "";
+    let book = `${title}\n\n${subtitle}\n\nBy NexoraOS\n\n---\n\n`;
 
-    // ===== PAGE 1 — COVER =====
-    book += `${title}\n\n${subtitle}\n\nBy NexoraOS\n\n---\n\n`;
+    book += `COPYRIGHT\n\nCopyright © ${new Date().getFullYear()} NexoraOS. All rights reserved.\n\n---\n\n`;
 
-    // ===== PAGE 2 — COPYRIGHT =====
-    book += `Copyright © ${new Date().getFullYear()} NexoraOS. All rights reserved.
-
-This book is for educational purposes only and does not constitute financial, legal, or professional advice.
-
-No part of this publication may be reproduced without permission.
-
----\n\n`;
-
-    // ===== PAGE 3 — AUTHOR LETTER =====
     book += `LETTER FROM THE AUTHOR\n\n`;
     book += await callLLM(`
-Write a powerful opening letter to the reader for a book titled "${title}" about "${topic}".
+Write a short, powerful opening letter for "${title}" about "${topic}".
+Tone: mentor, authority, transformation-focused.
+600–800 words.
+`, 900);
+    book += "\n\n---\n\n";
 
-Tone:
-- Authority-driven
-- Mentor-like
-- Emotionally grounding
-- Transformation-focused
-
-Purpose:
-- Why this book exists
-- Who it is for
-- What the reader will become
-- Why this system works
-
-${chapterSize}
-`) + "\n\n---\n\n";
-
-    // ===== PAGE 4 — WHAT YOU WILL ACHIEVE =====
-    book += `WHAT YOU WILL ACHIEVE FROM THIS BOOK\n\n`;
+    book += `WHAT YOU WILL LEARN\n\n`;
     book += await callLLM(`
-Create a premium outcome list for "${title}" about "${topic}".
+Create a bullet-point outcome list for "${title}" about "${topic}".
+No fluff. Identity-based.
+`, 600);
+    book += "\n\n---\n\n";
 
-Format:
-- Bullet points
-- Results-focused
-- Identity-based
-- No fluff
-
-${chapterSize}
-`) + "\n\n---\n\n";
-
-    // ===== PAGE 5 — HOW TO USE THIS BOOK =====
-    book += `HOW TO USE THIS BOOK\n\n`;
-    book += await callLLM(`
-Explain how to use this book as a system, not just content.
-
-For book: "${title}" about "${topic}"
-
-Include:
-- How to read it
-- How to apply it
-- Why slow reading matters
-- How transformation compounds
-
-${chapterSize}
-`) + "\n\n---\n\n";
-
-    // ===== PAGE 6 — TABLE OF CONTENTS =====
-    book += `TABLE OF CONTENTS\n\n`;
     const toc = await callLLM(`
-Generate ${chapters} premium nonfiction chapter titles for "${title}" about "${topic}".
+Generate ${chapters} chapter titles for "${title}" about "${topic}".
+One per line.
+`, 300);
+    book += `TABLE OF CONTENTS\n\n${toc}\n\n---\n\n`;
 
-Rules:
-- Outcome-focused
-- Psychological journey
-- No generic titles
-- One per line
-`);
-    book += toc + "\n\n---\n\n";
-
-    // ===== CHAPTERS =====
     for (let i = 1; i <= chapters; i++) {
       book += `CHAPTER ${i}\n\n`;
-
       book += await callLLM(`
 Write Chapter ${i} of "${title}" about "${topic}".
 
-STRUCTURE (follow exactly):
-1. Identity Hook
-2. Problem Reality
-3. Truth Shift
-4. Core Framework (named system)
-5. Deep Explanation
-6. Real-World Examples
-7. Action Steps
-8. Identity Reinforcement
+Structure:
+- Hook
+- Problem
+- Truth
+- Framework
+- Example
+- Action steps
 
-Tone:
-- Authoritative
-- Human
-- Persuasive
-- Premium publishing style
-- No filler
-- No generic advice
-
-${chapterSize}
-`) + "\n\n---\n\n";
+900–1100 words.
+`, 900);
+      book += "\n\n---\n\n";
     }
 
-    // ===== SUMMARY =====
     book += `SUMMARY\n\n`;
     book += await callLLM(`
-Write a concise, powerful summary for "${title}" about "${topic}".
-
-Tone:
-- Confident
-- Clear
-- Transformational
-`) + "\n\n---\n\n";
-
-    // ===== FINAL MESSAGE =====
-    book += `FINAL MESSAGE FROM THE AUTHOR\n\n`;
-    book += await callLLM(`
-Write a closing message that:
-- Reinforces reader identity
-- Encourages action
-- Positions the author as long-term mentor
-
-For "${title}" about "${topic}"
-`) + "\n\n---\n\n";
+Write a strong closing summary for "${title}" about "${topic}".
+`, 600);
 
     const wordCount = book.split(/\s+/).length;
     const pages = Math.ceil(wordCount / 450);
@@ -205,4 +120,4 @@ For "${title}" about "${topic}"
     console.error("EBOOK ERROR:", err);
     return res.status(500).json({ error: "Ebook generation failed", detail: err?.message });
   }
-        }
+    }
