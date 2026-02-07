@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Loader2, Sparkles, Download, Image as ImageIcon } from "lucide-react";
