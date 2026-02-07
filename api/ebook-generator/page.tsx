@@ -1,5 +1,5 @@
+"use client";
 import { useState, useEffect } from "react";
-
 export default function EbookGenerator() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("clear, authoritative, practical");
