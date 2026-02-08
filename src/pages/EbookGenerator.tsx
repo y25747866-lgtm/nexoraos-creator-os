@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Loader2, Sparkles, Download, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Loader2, Sparkles, Download } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,18 +12,26 @@ import { useToast } from "@/hooks/use-toast";
 import { useEbookStore, Ebook } from "@/hooks/useEbookStore";
 import { jsPDF } from "jspdf";
 
+interface StatusData {
+  status: string;
+  progress: number;
+  totalChapters: number;
+  title: string;
+  finalMarkdown?: string;
+}
+
 const EbookGenerator = () => {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("clear, authoritative, practical");
   const [ebookLength, setEbookLength] = useState<"short" | "medium" | "long">("medium");
   const [jobId, setJobId] = useState<string | null>(null);
-  const [statusData, setStatusData] = useState<any>(null);
+  const [statusData, setStatusData] = useState<StatusData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { toast } = useToast();
   const addEbook = useEbookStore((state) => state.addEbook);
 
-  // Auto-generate title preview as user types (optional, kept from your code)
+  // Auto-generate title preview as user types
   const [generatedTitlePreview, setGeneratedTitlePreview] = useState("");
   useEffect(() => {
     if (topic.length > 3) {
@@ -105,7 +115,7 @@ const EbookGenerator = () => {
         // When complete → save to store & show success
         if (data.status === "complete" && data.finalMarkdown) {
           const ebook: Ebook = {
-            id: jobId,
+            id: jobId!,
             title: data.title,
             topic,
             content: data.finalMarkdown,
@@ -119,7 +129,7 @@ const EbookGenerator = () => {
             description: `Your \~${ebook.pages}-page ebook is ready!`,
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Polling error:", err);
       }
     }, 5000); // every 5 seconds
@@ -127,7 +137,7 @@ const EbookGenerator = () => {
     return () => clearInterval(pollInterval);
   }, [jobId, topic, addEbook]);
 
-  // PDF generation (kept from your code, but now uses finalMarkdown)
+  // PDF generation (fixed fallback for title)
   const generatePDF = (ebook: Ebook) => {
     const doc = new jsPDF({
       orientation: "portrait",
@@ -151,7 +161,7 @@ const EbookGenerator = () => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(48);
     doc.setTextColor(251, 191, 36);
-    const titleLines = doc.splitTextToSize(ebook.title, maxWidth);
+    const titleLines = doc.splitTextToSize(ebook.title || "Untitled Ebook", maxWidth);
     doc.text(titleLines, pageWidth / 2, pageHeight / 2 - 80, { align: "center" });
 
     doc.setFontSize(24);
@@ -183,6 +193,7 @@ const EbookGenerator = () => {
         continue;
       }
 
+      // Headings
       if (trimmed.startsWith("# ")) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(24);
@@ -198,15 +209,24 @@ const EbookGenerator = () => {
         doc.setFontSize(14);
         doc.text(trimmed.slice(4), margin, y);
         y += 22;
-      } else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+      } else if (trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("+ ")) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
         doc.text("• " + trimmed.slice(2), margin + 15, y);
         y += lineHeight;
       } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
         const wrapped = doc.splitTextToSize(trimmed, maxWidth);
         doc.text(wrapped, margin, y);
         y += wrapped.length * lineHeight;
       }
     }
+
+    // Final page number
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - margin - 40, pageHeight - 30);
 
     doc.save(`${ebook.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
   };
@@ -240,10 +260,11 @@ const EbookGenerator = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Tone</label>
                 <Input
-                  placeholder="e.g., clear, authoritative, practical"
+                  placeholder="e.g., clear, tactical, motivational"
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
                   disabled={isGenerating}
+                  style={{ width: "100%", padding: "0.8rem", margin: "0.5rem 0" }}
                 />
               </div>
 
@@ -251,13 +272,13 @@ const EbookGenerator = () => {
                 <label className="block text-sm font-medium mb-2">Length</label>
                 <select
                   value={ebookLength}
-                  onChange={(e) => setEbookLength(e.target.value as any)}
-                  className="w-full p-3 rounded-md border border-input bg-background"
+                  onChange={(e) => setEbookLength(e.target.value as "short" | "medium" | "long")}
                   disabled={isGenerating}
+                  style={{ width: "100%", padding: "0.8rem", margin: "0.5rem 0" }}
                 >
-                  <option value="short">Short (5-10 pages)</option>
-                  <option value="medium">Medium (15-25 pages)</option>
-                  <option value="long">Long (40-50 pages)</option>
+                  <option value="short">Short (\~3 chapters)</option>
+                  <option value="medium">Medium (\~5 chapters)</option>
+                  <option value="long">Long (\~7 chapters)</option>
                 </select>
               </div>
 
@@ -269,7 +290,7 @@ const EbookGenerator = () => {
                 >
                   <div className="flex items-center gap-2 text-sm text-primary mb-1">
                     <Sparkles className="w-4 h-4" />
-                    <span>AI Suggested Title</span>
+                    <span>AI Generated Title</span>
                   </div>
                   <p className="font-semibold text-lg">{generatedTitlePreview}</p>
                 </motion.div>
@@ -285,20 +306,28 @@ const EbookGenerator = () => {
                         ? "Done!"
                         : statusData?.status?.includes("writing")
                         ? `Writing chapter ${currentProgress + 1} of ${total}...`
-                        : statusData?.status || "Processing..."}
+                        : statusData?.status || "Processing..."
+                      }
                     </span>
                   </div>
                 </div>
               )}
 
               {errorMsg && (
-                <p className="text-red-500 text-sm">{errorMsg}</p>
+                <p style={{ color: "red", marginTop: "1rem" }}>{errorMsg}</p>
               )}
 
               <Button
                 onClick={startGeneration}
                 disabled={isGenerating || !topic.trim()}
-                className="w-full py-6 text-lg font-medium"
+                style={{
+                  padding: "1rem 2rem",
+                  background: "#0066ff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  marginTop: "1rem",
+                }}
               >
                 {isGenerating ? (
                   <>
@@ -323,11 +352,10 @@ const EbookGenerator = () => {
 
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="w-full md:w-48 shrink-0">
-                  {/* Placeholder cover - you can trigger generate-cover here if wanted */}
-                  <div className="w-full aspect-[3/4] rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center p-4 text-center">
-                    <span className="text-white font-semibold">
-                      {statusData.title}
-                    </span>
+                  <div style={{ marginTop: "2rem" }}>
+                    <h2>Done!</h2>
+                    <p>You can now download or view the ebook.</p>
+                    {/* Add download link or display markdown */}
                   </div>
                 </div>
 
