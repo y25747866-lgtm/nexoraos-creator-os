@@ -51,4 +51,4 @@ Output ONLY the image prompt text.
     console.error(err);
     return res.status(500).json({ error: err.message || 'Failed to generate cover prompt' });
   }
-}
+                                 }
