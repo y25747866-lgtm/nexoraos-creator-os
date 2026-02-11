@@ -11,6 +11,7 @@ export interface Ebook {
   pages: number;
   length?: "short" | "medium" | "long";
   createdAt: string;
+  dbProductId?: string;
 }
 
 interface EbookStore {

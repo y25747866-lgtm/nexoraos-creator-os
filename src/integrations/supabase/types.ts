@@ -14,6 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
+      ebook_products: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          description: string | null
+          id: string
+          length: string
+          status: string
+          title: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          length?: string
+          status?: string
+          title: string
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          length?: string
+          status?: string
+          title?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_current_version"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          feedback_type: string
+          id: string
+          product_id: string
+          rating: number | null
+          section_reference: string | null
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          product_id: string
+          rating?: number | null
+          section_reference?: string | null
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          product_id?: string
+          rating?: number | null
+          section_reference?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_feedback_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_metrics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_type: string
+          product_id: string
+          recorded_at: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          product_id: string
+          recorded_at?: string
+          value?: number
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          product_id?: string
+          recorded_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_metrics_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_versions: {
+        Row: {
+          change_summary: string | null
+          content: string
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          pages: number
+          product_id: string
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          content: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          pages?: number
+          product_id: string
+          version_number?: number
+        }
+        Update: {
+          change_summary?: string | null
+          content?: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          pages?: number
+          product_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_versions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
