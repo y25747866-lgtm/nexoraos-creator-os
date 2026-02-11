@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEbookStore, Ebook } from "@/hooks/useEbookStore";
 import { generatePDF, downloadCoverImage } from "@/lib/pdfGenerator";
 import { supabase } from "@/integrations/supabase/client";
+import { createTrackedProduct, recordMetric } from "@/lib/productTracking";
 
 const LENGTH_OPTIONS = [
   { value: "short" as const, label: "Short", pages: "10–15 pages", icon: "📄" },
@@ -132,6 +133,24 @@ const EbookGenerator = () => {
       addEbook(ebook);
       setEbookData(ebook);
       setStep("complete");
+
+      // Save to DB for tracking
+      try {
+        const { product } = await createTrackedProduct({
+          title: ebook.title,
+          topic: ebook.topic,
+          description: ebook.description || "",
+          length: ebook.length || "medium",
+          content: ebook.content,
+          coverImageUrl: ebook.coverImageUrl,
+          pages: ebook.pages,
+        });
+        // Store the DB product ID on the ebook for metric tracking
+        ebook.dbProductId = product?.id;
+      } catch (trackErr) {
+        console.warn("Product tracking save failed:", trackErr);
+      }
+
       toast({ title: "Success!", description: `"${ebook.title}" is ready to download.` });
     } catch (err: any) {
       console.error("Generation error:", err);
@@ -142,11 +161,21 @@ const EbookGenerator = () => {
   };
 
   const handleDownloadPDF = () => {
-    if (ebookData) generatePDF(ebookData);
+    if (ebookData) {
+      generatePDF(ebookData);
+      if (ebookData.dbProductId) {
+        recordMetric(ebookData.dbProductId, "download").catch(() => {});
+      }
+    }
   };
 
   const handleDownloadCover = () => {
-    if (ebookData) downloadCoverImage(ebookData);
+    if (ebookData) {
+      downloadCoverImage(ebookData);
+      if (ebookData.dbProductId) {
+        recordMetric(ebookData.dbProductId, "cover_download").catch(() => {});
+      }
+    }
   };
 
   const resetForm = () => {
