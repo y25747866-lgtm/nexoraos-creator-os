@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
 import nexoraLogo from "@/assets/nexora-logo.png";
 import { z } from "zod";
+import { signInWithGoogle } from "@/lib/auth/login"; // ← Added this import
 
 const emailSchema = z.string().email("Please enter a valid email address");
 
@@ -78,14 +79,14 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      await signInWithGoogle(); // Uses Supabase directly → redirects to Google → back to /auth/callback
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Google sign-in failed. Please try again.",
+        variant: "destructive",
       });
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Google sign-in failed. Please try again.", variant: "destructive" });
     } finally {
       setIsGoogleLoading(false);
     }
