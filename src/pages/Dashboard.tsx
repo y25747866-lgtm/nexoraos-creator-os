@@ -354,7 +354,7 @@ const Dashboard = () => {
 
           {/* Stats Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-            <StatCard icon={BookOpen} label="Ebooks Created" value={aggregatedStats.ebooksCreated.toLocaleString()} loading={loading} />
+            <StatCard icon={BookOpen} label="Digital Products Created" value={aggregatedStats.ebooksCreated.toLocaleString()} loading={loading} />
             <StatCard icon={Eye} label="Total Views" value={aggregatedStats.totalViews.toLocaleString()} loading={loading} />
             <StatCard icon={Download} label="Total Downloads" value={aggregatedStats.totalDownloads.toLocaleString()} trend={aggregatedStats.trend} loading={loading} />
             <StatCard icon={BarChart3} label="Conversion Rate" value={aggregatedStats.totalViews > 0 ? `${((aggregatedStats.totalDownloads / aggregatedStats.totalViews) * 100).toFixed(1)}%` : "0%"} loading={loading} />
@@ -461,7 +461,7 @@ const Dashboard = () => {
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#777777', textAlign: 'center', padding: '32px 0', fontWeight: 400 }}>
-                  No products yet. Create your first ebook to get started!
+                  No products yet. Create your first digital product to get started!
                 </p>
               ) : (
                 <div className="space-y-4">

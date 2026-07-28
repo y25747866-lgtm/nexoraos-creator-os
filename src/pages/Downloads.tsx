@@ -56,7 +56,7 @@ const Downloads = () => {
       <div className="relative" style={{ background: '#0A0A0A', padding: '40px', minHeight: 'auto' }}>
         {/* HARD UI LOCK FOR EXPIRED/FREE USERS */}
         {!hasAccess && !subLoading && (
-          <UpgradeOverlay message={isExpired ? "Your subscription has expired. Please renew to access your downloads." : "Downloads and exports are premium features. Upgrade to download your generated ebooks."} />
+          <UpgradeOverlay message={isExpired ? "Your subscription has expired. Please renew to access your downloads." : "Downloads and exports are premium features. Upgrade to download your generated digital products."} />
         )}
 
         <div className={!hasAccess && !subLoading ? "opacity-50 pointer-events-none" : ""}>
@@ -70,7 +70,7 @@ const Downloads = () => {
               Download History
             </h1>
             <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#555555' }}>
-              Access and manage all your generated ebooks.
+              Access and manage all your generated digital products.
             </p>
           </motion.div>
 
@@ -101,10 +101,10 @@ const Downloads = () => {
                 <BookOpen size={20} color="#FFFFFF" style={{ opacity: 0.4 }} />
               </div>
               <h3 style={{ fontFamily: 'Syne', fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>
-                No ebooks yet
+                No digital products yet
               </h3>
               <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: '#555555', marginTop: '8px' }}>
-                Create your first ebook to see it here.
+                Create your first digital product to see it here.
               </p>
               <button 
                 onClick={() => (window.location.href = "/dashboard/ebook-generator")}
@@ -124,7 +124,7 @@ const Downloads = () => {
                 onMouseEnter={(e) => e.currentTarget.style.background = '#F0F0F0'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
               >
-                Create Ebook
+                Create Digital Product
               </button>
             </motion.div>
           ) : (

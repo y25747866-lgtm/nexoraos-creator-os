@@ -233,7 +233,7 @@ const NexoraOSSignIn = () => {
             {/* Features */}
             <div className="space-y-3 mt-6">
               {[
-                'Generate a full ebook in under 60 seconds',
+                'Generate a full digital product in under 60 seconds',
                 'Launch a sales page without touching code',
                 'Sell on Whop, Gumroad, Payhip and more'
               ].map((feature, index) => (
