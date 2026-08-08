@@ -8,7 +8,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isPaidPlan, isSubscriptionActive, normalizePlanType } from "@/lib/subscription";
-import nexoraLogo from '@/assets/nexora-logo.webp';
+import nexoraLogo from '@/assets/nexora-logo.png';
 
 const PAYMENT_LINKS = {
   creator: "https://whop.com/nexora-b5b0/creator-d2/?ref=related_products&funnelId=product_f1bf7e78-2e66-48fc-89fd-90cd24354d47",
