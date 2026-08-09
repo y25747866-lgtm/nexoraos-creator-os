@@ -18,6 +18,23 @@ import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
 
+// ─── TOPIC INPUT GLOW ─────────────────────────────────────────────────────────
+const glowStyles = `
+  @keyframes glowPulse {
+    0% { box-shadow: 0 0 0px 0px rgba(0, 255, 200, 0); border-color: rgb(39, 39, 42); }
+    50% { box-shadow: 0 0 18px 4px rgba(0, 255, 200, 0.35); border-color: rgba(0, 255, 200, 0.6); }
+    100% { box-shadow: 0 0 0px 0px rgba(0, 255, 200, 0); border-color: rgb(39, 39, 42); }
+  }
+  .topic-input-glow {
+    animation: glowPulse 2.5s ease-in-out infinite;
+  }
+  .topic-input-glow:focus {
+    animation: none;
+    box-shadow: 0 0 18px 4px rgba(0, 255, 200, 0.35);
+    border-color: rgba(0, 255, 200, 0.6);
+  }
+`;
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const PAGE_W = 595, PAGE_H = 842;
 const MX = 50, MY = 50, CONTENT_W = PAGE_W - MX * 2;
@@ -670,6 +687,7 @@ const EbookGenerator = () => {
 
   const renderNicheDiscovery = () => (
     <div className="max-w-4xl mx-auto">
+      <style>{glowStyles}</style>
       <div className="text-center mb-10">
         <h1 className="text-4xl font-extrabold mb-4 tracking-tight" style={{ fontFamily: "Syne" }}>AI Product Generator</h1>
         <p className="text-zinc-400">Discover winning niches and generate professional digital products in minutes.</p>
@@ -684,7 +702,7 @@ const EbookGenerator = () => {
               onChange={(e) => setTopic(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && findWinningNiches()}
               placeholder="I don't know, you can find a good topic for me."
-              className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white transition-colors"
+              className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white transition-colors topic-input-glow"
             />
             <p className="text-xs text-zinc-500 mt-2">Enter a broad idea and AI will search trending markets to find the best angle to sell.</p>
           </div>
