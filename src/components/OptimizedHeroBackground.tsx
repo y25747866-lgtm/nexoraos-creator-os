@@ -14,7 +14,11 @@ const OptimizedHeroBackground = () => {
     // Use requestIdleCallback to defer heavy background loading with fallback
     let id: number | NodeJS.Timeout;
     
-    const activate = () => setIsReady(true);
+    const activate = () => {
+      // Don't load heavy animations on mobile devices to save main-thread work
+      if (window.innerWidth < 768) return;
+      setIsReady(true);
+    };
 
     if (typeof requestIdleCallback !== 'undefined') {
       id = requestIdleCallback(activate, { timeout: 3000 });

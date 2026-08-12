@@ -56,9 +56,9 @@ const CanvasParticles = () => {
     document.addEventListener('mousemove', handleMouseMove);
 
     let animationFrameId: number;
+    const color = hexToRgb(getAccentColor());
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
-      const color = hexToRgb(getAccentColor());
 
       (particles || []).forEach((p, i) => {
         p.x += p.vx;

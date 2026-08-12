@@ -1,6 +1,6 @@
 import { useRef, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
+import { m, useInView } from 'framer-motion';
 
 import { 
   ArrowRight, Check, Sparkles, DollarSign,
@@ -17,7 +17,7 @@ const Section = ({ children, className = '', id }: { children: React.ReactNode; 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   return (
-    <motion.section
+    <m.section
       ref={ref}
       id={id}
       initial={{ opacity: 0, y: 40 }}
@@ -26,7 +26,7 @@ const Section = ({ children, className = '', id }: { children: React.ReactNode; 
       className={className}
     >
       {children}
-    </motion.section>
+    </m.section>
   );
 };
 
@@ -74,7 +74,7 @@ const Landing = () => {
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-white selection:text-[#0A0A0A] overflow-x-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       
       {/* ═══ NAVBAR ═══ */}
-      <motion.nav
+      <m.nav
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -85,7 +85,7 @@ const Landing = () => {
             <img src={nexoraLogo} alt="NexoraOS Logo" width="32" height="32" className="w-8 h-8" />
             <span className="font-bold text-lg text-white" style={{ fontFamily: "'Syne', sans-serif" }}>NexoraOS</span>
           </Link>
-          <div className="hidden md:flex gap-8 text-sm font-medium text-[#666666] absolute left-1/2 -translate-x-1/2">
+          <div className="hidden md:flex gap-8 text-sm font-medium text-[#A1A1A1] absolute left-1/2 -translate-x-1/2">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
@@ -96,14 +96,14 @@ const Landing = () => {
             </Link>
           </div>
         </div>
-      </motion.nav>
+      </m.nav>
 
       {/* ═══ HERO ═══ */}
       <section id="hero" className="pt-48 pb-24 hero-section relative overflow-hidden">
         <OptimizedHeroBackground />
         <div className="relative z-10">
           <div className="max-w-7xl mx-auto px-6">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -120,6 +120,7 @@ const Landing = () => {
                 <div className="text-left">
                   <div ref={heroWordsRef}>
                     <h1 className="text-4xl md:text-[64px] font-[800] leading-[1.1] mb-8" style={{ fontFamily: "'Syne', sans-serif" }}>
+                      <span className="sr-only">NexoraOS: </span>
                       <div className="hero-word transition-opacity duration-500 text-white/85">Your idea.</div>
                       <div className="hero-word transition-opacity duration-500 text-white/85">Your product.</div>
                       <div className="hero-word transition-opacity duration-500">
@@ -129,7 +130,7 @@ const Landing = () => {
                       <div className="hero-word transition-opacity duration-500 text-white/85">In one session.</div>
                     </h1>
                   </div>
-                  <p className="text-[#666666] mb-10 text-lg leading-relaxed max-w-lg">
+                  <p className="text-[#A1A1A1] mb-10 text-lg leading-relaxed max-w-lg">
                     NexoraOS is the only system built for creators who are done waiting. Build, launch, and monetize — all in one place.
                   </p>
                   <div className="flex flex-wrap gap-3 mb-4">
@@ -137,11 +138,11 @@ const Landing = () => {
                       Start Building Now <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
-                  <p className="text-[#333333] text-xs">No credit card. No fluff.</p>
+                  <p className="text-[#707070] text-xs">No credit card. No fluff.</p>
                 </div>
 
                 <div className="hidden lg:block">
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, x: 40 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
@@ -166,14 +167,14 @@ const Landing = () => {
                         <span className="text-[#CCCCCC]">First Sale: <span className="text-white font-bold">$49</span></span>
                       </div>
                       <div className="pt-4 border-t border-[#1A1A1A]">
-                        <span className="text-[#666666]">Time elapsed: </span>
+                        <span className="text-[#A1A1A1]">Time elapsed: </span>
                         <span className="text-white">2 minutes</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </m.div>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         </div>
       </section>
@@ -182,7 +183,7 @@ const Landing = () => {
       <Section id="features" className="py-32 border-t border-[#1A1A1A]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-left mb-4">
-            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#666666] border border-[#1A1A1A] bg-[#111111] mb-6">
+            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#A1A1A1] border border-[#1A1A1A] bg-[#111111] mb-6">
               WHAT YOU GET
             </span>
           </div>
@@ -196,7 +197,7 @@ const Landing = () => {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ fontFamily: "'Syne', sans-serif" }}>Generate</h3>
-              <p className="text-[#666666] leading-relaxed">AI builds your digital product from scratch. digital products, courses, templates, software—whatever you can sell, we can generate.</p>
+              <p className="text-[#A1A1A1] leading-relaxed">AI builds your digital product from scratch. digital products, courses, templates, software—whatever you can sell, we can generate.</p>
             </div>
 
             <div className="md:col-span-4 bg-[#0F0F0F] border border-[#1A1A1A] rounded-2xl p-8 hover:border-[#2A2A2A] transition-all group cursor-pointer">
@@ -204,7 +205,7 @@ const Landing = () => {
                 <Rocket className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ fontFamily: "'Syne', sans-serif" }}>Launch</h3>
-              <p className="text-[#666666] leading-relaxed">Sales page, checkout, delivery—all automated. You just share the link.</p>
+              <p className="text-[#A1A1A1] leading-relaxed">Sales page, checkout, delivery—all automated. You just share the link.</p>
             </div>
 
             <div className="md:col-span-4 bg-[#0F0F0F] border border-[#1A1A1A] rounded-2xl p-8 hover:border-[#2A2A2A] transition-all group cursor-pointer">
@@ -212,7 +213,7 @@ const Landing = () => {
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ fontFamily: "'Syne', sans-serif" }}>Sell</h3>
-              <p className="text-[#666666] leading-relaxed">Plug into any platform. Keep 100% of your earnings.</p>
+              <p className="text-[#A1A1A1] leading-relaxed">Plug into any platform. Keep 100% of your earnings.</p>
             </div>
 
             <div className="md:col-span-6 bg-[#0F0F0F] border border-[#1A1A1A] rounded-2xl p-8 hover:border-[#2A2A2A] transition-all group cursor-pointer">
@@ -220,7 +221,7 @@ const Landing = () => {
                 <BarChart2 className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ fontFamily: "'Syne', sans-serif" }}>Track</h3>
-              <p className="text-[#666666] leading-relaxed">Real-time analytics. Know what's working. Know what's making money. No guesswork.</p>
+              <p className="text-[#A1A1A1] leading-relaxed">Real-time analytics. Know what's working. Know what's making money. No guesswork.</p>
             </div>
 
             <div className="md:col-span-10 bg-[#0F0F0F] border border-[#1A1A1A] rounded-2xl p-8 hover:border-[#2A2A2A] transition-all group cursor-pointer">
@@ -230,7 +231,7 @@ const Landing = () => {
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
                   <h3 className="text-2xl font-bold whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>Scale</h3>
-                  <p className="text-[#666666] leading-relaxed">One product works? Spin up 10 more. The system does the heavy lifting.</p>
+                  <p className="text-[#A1A1A1] leading-relaxed">One product works? Spin up 10 more. The system does the heavy lifting.</p>
                 </div>
               </div>
             </div>
@@ -240,7 +241,7 @@ const Landing = () => {
 
       {/* ═══ PLATFORM STRIP ═══ */}
       <section className="relative overflow-hidden py-8 bg-[#080808] border-y border-[#1A1A1A]">
-        <p className="text-center text-[10px] font-semibold tracking-[0.12em] uppercase text-[#333333] mb-5 font-['DM_Sans']">
+        <p className="text-center text-[10px] font-semibold tracking-[0.12em] uppercase text-[#707070] mb-5 font-['DM_Sans']">
           SELL ON ANY PLATFORM
         </p>
         <div className="absolute left-0 top-0 bottom-0 z-10 pointer-events-none w-[120px] bg-gradient-to-r from-[#080808] to-transparent" />
@@ -266,7 +267,7 @@ const Landing = () => {
       <Section className="py-32 border-t border-[#1A1A1A]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-4">
-            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#666666] border border-[#1A1A1A] bg-[#111111] mb-6">
+            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#A1A1A1] border border-[#1A1A1A] bg-[#111111] mb-6">
               WHY I BUILT THIS
             </span>
           </div>
@@ -277,13 +278,13 @@ const Landing = () => {
               </div>
             </div>
             <div>
-              <p className="text-[#333333] text-7xl font-serif leading-none mb-6">"</p>
+              <p className="text-[#707070] text-7xl font-serif leading-none mb-6">"</p>
               <p className="text-white text-xl md:text-2xl leading-relaxed mb-8 -mt-8" style={{ fontFamily: "'Syne', sans-serif" }}>
                 I built this because I was tired of watching talented people waste years learning 'the right way' while others were already cashing out.
               </p>
               <div className="h-px bg-[#1A1A1A] mb-6" />
               <p className="text-white font-bold text-lg">Yesh Malik</p>
-              <p className="text-[#666666] text-sm">Founder, NexoraOS</p>
+              <p className="text-[#A1A1A1] text-sm">Founder, NexoraOS</p>
             </div>
           </div>
         </div>
@@ -293,23 +294,23 @@ const Landing = () => {
       <Section id="pricing" className="py-32 border-t border-[#1A1A1A]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-left mb-4">
-            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#666666] border border-[#1A1A1A] bg-[#111111] mb-6">
+            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#A1A1A1] border border-[#1A1A1A] bg-[#111111] mb-6">
               SIMPLE PRICING
             </span>
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-left mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
             Simple pricing
           </h2>
-          <p className="text-left text-[#666666] mb-16">Pick what works. Cancel anytime.</p>
+          <p className="text-left text-[#A1A1A1] mb-16">Pick what works. Cancel anytime.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <div className="bg-white border border-white rounded-2xl p-8 flex flex-col md:order-2 relative">
               <h3 className="text-lg font-bold mb-2 text-[#0A0A0A]">Creator</h3>
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-5xl font-bold text-[#0A0A0A]">$19</span>
-                <span className="text-[#666666]">/mo</span>
+                <span className="text-[#A1A1A1]">/mo</span>
               </div>
-              <p className="text-[#666666] text-sm mb-6">Cancel anytime. No questions.</p>
+              <p className="text-[#A1A1A1] text-sm mb-6">Cancel anytime. No questions.</p>
               <div className="space-y-3 mb-8 flex-grow">
                 {['Unlimited AI Generations', 'Premium Sales Page Builder', 'Advanced Analytics', 'Full-length exports', 'Built-in Monetization'].map((f, j) => (
                   <div key={j} className="flex items-center gap-3 text-sm text-[#0A0A0A]/70">
@@ -328,11 +329,11 @@ const Landing = () => {
               <div className="flex items-baseline mb-2">
                 <span className="text-5xl font-bold">$0</span>
               </div>
-              <p className="text-[#666666] text-sm mb-6">Try it out. See if it clicks.</p>
+              <p className="text-[#A1A1A1] text-sm mb-6">Try it out. See if it clicks.</p>
               <div className="space-y-3 mb-8 flex-grow">
                 {['1 AI generation/day', 'Basic Sales Page Builder', 'Standard Analytics', 'Short-form exports'].map((f, j) => (
                   <div key={j} className="flex items-center gap-3 text-sm text-[#999999]">
-                    <Check className="w-4 h-4 text-[#333333] shrink-0" />
+                    <Check className="w-4 h-4 text-[#707070] shrink-0" />
                     <span>{f}</span>
                   </div>
                 ))}
@@ -346,13 +347,13 @@ const Landing = () => {
               <h3 className="text-lg font-bold mb-2">Pro</h3>
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-5xl font-bold">$39</span>
-                <span className="text-[#666666]">/mo</span>
+                <span className="text-[#A1A1A1]">/mo</span>
               </div>
-              <p className="text-[#666666] text-sm mb-6">For those going all in.</p>
+              <p className="text-[#A1A1A1] text-sm mb-6">For those going all in.</p>
               <div className="space-y-3 mb-8 flex-grow">
                 {['Everything in Creator', 'AI Business Assistant', 'Priority Processing', 'Custom Domain Support', 'Advanced Automation'].map((f, j) => (
                   <div key={j} className="flex items-center gap-3 text-sm text-[#999999]">
-                    <Check className="w-4 h-4 text-[#333333] shrink-0" />
+                    <Check className="w-4 h-4 text-[#707070] shrink-0" />
                     <span>{f}</span>
                   </div>
                 ))}
@@ -369,7 +370,7 @@ const Landing = () => {
       <Section id="faq" className="py-32 border-t border-[#1A1A1A]">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-left mb-4">
-            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#666666] border border-[#1A1A1A] bg-[#111111] mb-6">
+            <span className="inline-block px-3 py-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#A1A1A1] border border-[#1A1A1A] bg-[#111111] mb-6">
               QUESTIONS
             </span>
           </div>
@@ -388,7 +389,7 @@ const Landing = () => {
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <h3 className="text-xl font-bold text-white mb-3">{faq.q}</h3>
-                <p className="text-[#666666] leading-relaxed max-w-2xl">{faq.a}</p>
+                <p className="text-[#A1A1A1] leading-relaxed max-w-2xl">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -404,18 +405,18 @@ const Landing = () => {
                 <img src={nexoraLogo} alt="NexoraOS Logo" width="32" height="32" loading="lazy" className="w-8 h-8" />
                 <span className="font-bold text-lg" style={{ fontFamily: "'Syne', sans-serif" }}>NexoraOS</span>
               </div>
-              <p className="text-[#333333] text-sm">Built by a creator, for creators.</p>
+              <p className="text-[#707070] text-sm">Built by a creator, for creators.</p>
               <p className="text-[#222222] text-xs mt-1">No VC money. No corporate BS.</p>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="flex gap-8 text-sm text-[#333333]">
+              <div className="flex gap-8 text-sm text-[#707070]">
                 <a href="#features" className="hover:text-white transition-colors">Features</a>
                 <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
                 <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
                 <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
                 <span>© 2026 NexoraOS</span>
               </div>
-              <div className="text-sm text-[#333333]">
+              <div className="text-sm text-[#707070]">
                 <span>Support: </span>
                 <a href="mailto:support@nexoraos.digital" className="hover:text-white transition-colors">support@nexoraos.digital</a>
               </div>
