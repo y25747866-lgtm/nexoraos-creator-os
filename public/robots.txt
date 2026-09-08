@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /dashboard
 Disallow: /dashboard/
+
+Sitemap: https://www.nexoraos.digital/sitemap.xml
